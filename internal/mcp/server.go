@@ -246,6 +246,34 @@ func (s *Server) callTool(r *http.Request, userID, name string, args json.RawMes
 		data, _ := json.MarshalIndent(projects, "", "  ")
 		return string(data), nil
 
+	case "config_push":
+		var req struct {
+			FileKey string `json:"file_key"`
+			Content string `json:"content"`
+			Device  string `json:"device"`
+		}
+		if err := json.Unmarshal(args, &req); err != nil {
+			return "", fmt.Errorf("参数格式错误: %w", err)
+		}
+		if err := s.mem.ConfigPush(ctx, userID, req.FileKey, req.Content, req.Device); err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("配置 %s 已推送到服务器。", req.FileKey), nil
+
+	case "config_pull":
+		var req struct {
+			FileKey string `json:"file_key"`
+		}
+		if err := json.Unmarshal(args, &req); err != nil {
+			return "", fmt.Errorf("参数格式错误: %w", err)
+		}
+		cfg, err := s.mem.ConfigPull(ctx, userID, req.FileKey)
+		if err != nil {
+			return "", err
+		}
+		data, _ := json.MarshalIndent(cfg, "", "  ")
+		return string(data), nil
+
 	default:
 		return "", fmt.Errorf("未知工具: %s", name)
 	}

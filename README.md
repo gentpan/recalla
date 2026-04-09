@@ -32,6 +32,7 @@ Recalla sits between your AI tools and a persistent memory layer. It captures co
 - **Multi-provider AI** — Support OpenAI, Qwen, DeepSeek, Ollama, or any OpenAI-compatible API
 - **Dashboard** — Web UI to browse memories, sessions, projects, and manage settings
 - **User auth** — Login system with API key management
+- **Config sync** — Push CLAUDE.md and AI tool configs to server, new devices pull automatically
 - **Self-hosted** — Your data stays on your server, zero third-party dependency
 - **i18n** — English and Chinese
 
@@ -104,6 +105,8 @@ Add to your project's `CLAUDE.md` / `AGENTS.md` / `.cursorrules`:
 | `session_sync` | Sync current AI session to cloud |
 | `session_compress` | AI-compress long sessions into structured summaries |
 | `project_list` | List all recorded projects |
+| `config_push` | Push local AI config files (CLAUDE.md etc.) to server |
+| `config_pull` | Pull latest config from server to local device |
 
 ## REST API
 
@@ -120,6 +123,9 @@ All endpoints require `Authorization: Bearer <api-key>` header. Generate API key
 | POST | `/api/session/compress` | Compress session |
 | GET | `/api/projects` | List projects |
 | GET | `/api/project/{name}` | Project detail |
+| POST | `/api/config/push` | Push config file to server |
+| POST | `/api/config/pull` | Pull config file from server |
+| GET | `/api/config/list` | List all synced configs |
 | GET | `/api/stats` | Dashboard stats |
 
 ## Architecture

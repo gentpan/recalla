@@ -131,5 +131,41 @@ func getToolDefinitions() []map[string]any {
 				"properties": map[string]any{},
 			},
 		},
+		{
+			"name":        "config_push",
+			"description": "推送本地配置文件到 Recalla 服务器。用于同步 CLAUDE.md、.cursorrules 等 AI 工具配置文件到云端，确保多台设备配置一致。当配置文件被修改后应自动调用。支持的 file_key：claude-md（~/.claude/CLAUDE.md）、cursor-rules（.cursor/rules/）、codex-instructions（~/.codex/instructions.md）。",
+			"inputSchema": map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"file_key": map[string]any{
+						"type":        "string",
+						"description": "配置文件标识：claude-md, cursor-rules, codex-instructions",
+					},
+					"content": map[string]any{
+						"type":        "string",
+						"description": "配置文件的完整内容",
+					},
+					"device": map[string]any{
+						"type":        "string",
+						"description": "当前设备名称",
+					},
+				},
+				"required": []string{"file_key", "content"},
+			},
+		},
+		{
+			"name":        "config_pull",
+			"description": "从 Recalla 服务器拉取最新的配置文件。用于在新设备上获取最新的 CLAUDE.md 等配置。在对话开始时，如果检测到本地配置可能过期，应调用此工具获取最新版本。",
+			"inputSchema": map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"file_key": map[string]any{
+						"type":        "string",
+						"description": "配置文件标识：claude-md, cursor-rules, codex-instructions",
+					},
+				},
+				"required": []string{"file_key"},
+			},
+		},
 	}
 }

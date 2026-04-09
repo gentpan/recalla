@@ -452,6 +452,80 @@ func (s *Service) UpdateMemory(ctx context.Context, userID, memoryID string, con
 	return nil
 }
 
+// ConfigFile 配置文件
+type ConfigFile struct {
+	FileKey   string    `json:"file_key"`
+	Content   string    `json:"content"`
+	Device    string    `json:"device"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// ConfigPush 推送配置文件到服务器
+func (s *Service) ConfigPush(ctx context.Context, userID string, fileKey, content, device string) error {
+	now := time.Now()
+
+	// 保存历史版本
+	s.db.Pool.Exec(ctx, `
+		INSERT INTO config_history (user_id, file_key, content, device, created_at)
+		VALUES ($1, $2, $3, $4, $5)
+	`, userID, fileKey, content, device, now)
+
+	// 清理旧历史（保留最近 20 条）
+	go func() {
+		s.db.Pool.Exec(context.Background(), `
+			DELETE FROM config_history WHERE id IN (
+				SELECT id FROM config_history WHERE user_id=$1 AND file_key=$2
+				ORDER BY created_at DESC OFFSET 20
+			)
+		`, userID, fileKey)
+	}()
+
+	// upsert 当前版本
+	_, err := s.db.Pool.Exec(ctx, `
+		INSERT INTO configs (user_id, file_key, content, device, updated_at)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (user_id, file_key) DO UPDATE SET
+			content = EXCLUDED.content,
+			device = EXCLUDED.device,
+			updated_at = EXCLUDED.updated_at
+	`, userID, fileKey, content, device, now)
+	return err
+}
+
+// ConfigPull 从服务器拉取配置文件
+func (s *Service) ConfigPull(ctx context.Context, userID, fileKey string) (*ConfigFile, error) {
+	var cfg ConfigFile
+	err := s.db.Pool.QueryRow(ctx, `
+		SELECT file_key, content, COALESCE(device,''), updated_at
+		FROM configs WHERE user_id=$1 AND file_key=$2
+	`, userID, fileKey).Scan(&cfg.FileKey, &cfg.Content, &cfg.Device, &cfg.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("配置不存在: %s", fileKey)
+	}
+	return &cfg, nil
+}
+
+// ConfigList 列出所有配置文件
+func (s *Service) ConfigList(ctx context.Context, userID string) ([]ConfigFile, error) {
+	rows, err := s.db.Pool.Query(ctx, `
+		SELECT file_key, COALESCE(device,''), updated_at
+		FROM configs WHERE user_id=$1 ORDER BY file_key
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var configs []ConfigFile
+	for rows.Next() {
+		var c ConfigFile
+		if err := rows.Scan(&c.FileKey, &c.Device, &c.UpdatedAt); err == nil {
+			configs = append(configs, c)
+		}
+	}
+	return configs, nil
+}
+
 // Delete 删除记忆
 func (s *Service) Delete(ctx context.Context, userID string, memoryID string) error {
 	_, err := s.db.Pool.Exec(ctx, `
