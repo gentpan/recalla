@@ -76,8 +76,32 @@ pre.code{background:#1e1e2e;border:1px solid #3b414d;padding:16px;overflow-x:aut
 <script>
 let TOKEN='',USER=null,LANG=localStorage.getItem('lang')||'en';
 const I={
-  en:{overview:'Overview',memories:'Memories',sessions:'Sessions',projects:'Projects',docs:'API Docs',settings:'Settings',account:'Account',logout:'Logout',login:'Login',username:'Username',password:'Password',recentMem:'Recent Memories',noMem:'No memories yet.',noSess:'No sessions.',noProj:'No projects.',noRes:'No results.',search:'Search',allProj:'All projects',allTypes:'All types',newMem:'+ New',newMemTitle:'New Memory',project:'Project',type:'Type',content:'Content',tags:'Tags (comma)',save:'Save',cancel:'Cancel',delete:'Delete',back:'← Back',status:'Status',device:'Device',branch:'Branch',time:'Time',session:'Session',showContent:'Show content',chgUser:'Change Username',chgPwd:'Change Password',oldPwd:'Old Password',newPwd:'New Password',updatePwd:'Update Password',apiKeys:'API Keys',apiKeysDesc:'Generate API Keys for MCP and REST API authentication.',keyName:'Key name (e.g. macstudio)',genKey:'Generate Key',name:'Name',key:'Key',lastUsed:'Last Used',created:'Created',saved:'Saved',deleted:'Deleted',required:'Project & Content required',enterQuery:'Enter query',min6:'Min 6 chars',fillBoth:'Fill both fields',usrUpdated:'Username updated',pwdUpdated:'Password updated',keyGen:'Key generated',settingsSaved:'Settings saved',embeddingApi:'Embedding API',llmApi:'LLM (Compression)',github:'GitHub',token:'Token',owner:'Owner',webhookSecret:'Webhook Secret',reset:'Reset',mcpConn:'MCP Connection',mcpEndpoint:'Your MCP endpoint:',quickStart:'Quick Start',quickStartDesc:'Recalla is a cross-device AI memory sync tool. Configure your AI tools to connect via MCP protocol, and your AI will remember everything across devices.',autoRules:'Auto-recall Rules',autoRulesDesc:'Add to your project\'s',mcpTools:'MCP Tools',tool:'Tool',desc:'Description',restApi:'REST API',restApiDesc:'Use API Key in Authorization: Bearer rk-xxx header. Generate keys in Account → API Keys.',method:'Method',endpoint:'Endpoint',example:'Example: Save Memory',selfDeploy:'Self-Deploy',defaultLogin:'Default login:',memInfra:'memory infrastructure',confirm:'Confirm delete?'},
-  zh:{overview:'概览',memories:'记忆',sessions:'会话',projects:'项目',docs:'API 文档',settings:'设置',account:'账户',logout:'退出',login:'登录',username:'用户名',password:'密码',recentMem:'最近记忆',noMem:'暂无记忆',noSess:'暂无会话',noProj:'暂无项目',noRes:'无结果',search:'搜索',allProj:'全部项目',allTypes:'全部类型',newMem:'+ 新建',newMemTitle:'新建记忆',project:'项目',type:'类型',content:'内容',tags:'标签（逗号分隔）',save:'保存',cancel:'取消',delete:'删除',back:'← 返回',status:'状态',device:'设备',branch:'分支',time:'时间',session:'会话',showContent:'展开内容',chgUser:'修改用户名',chgPwd:'修改密码',oldPwd:'旧密码',newPwd:'新密码',updatePwd:'更新密码',apiKeys:'API 密钥',apiKeysDesc:'生成 API 密钥用于 MCP 和 REST API 认证。',keyName:'密钥名称（如 macstudio）',genKey:'生成密钥',name:'名称',key:'密钥',lastUsed:'上次使用',created:'创建时间',saved:'已保存',deleted:'已删除',required:'项目和内容必填',enterQuery:'请输入搜索内容',min6:'至少 6 位',fillBoth:'请填写两个字段',usrUpdated:'用户名已更新',pwdUpdated:'密码已更新',keyGen:'密钥已生成',settingsSaved:'设置已保存',embeddingApi:'向量嵌入 API',llmApi:'LLM（会话压缩）',github:'GitHub',token:'令牌',owner:'所有者',webhookSecret:'Webhook 密钥',reset:'重置',mcpConn:'MCP 连接',mcpEndpoint:'你的 MCP 端点：',quickStart:'快速开始',quickStartDesc:'Recalla 是一个跨设备 AI 记忆同步工具。配置你的 AI 工具通过 MCP 协议连接，AI 将记住跨设备的所有内容。',autoRules:'自动调用规则',autoRulesDesc:'添加到你项目的',mcpTools:'MCP 工具',tool:'工具',desc:'说明',restApi:'REST API',restApiDesc:'在 Authorization: Bearer rk-xxx 请求头中使用 API Key。在 账户 → API 密钥 中生成。',method:'方法',endpoint:'端点',example:'示例：保存记忆',selfDeploy:'自部署',defaultLogin:'默认登录：',memInfra:'AI 记忆基础设施',confirm:'确认删除？'}
+  en:{overview:'Overview',memories:'Memories',sessions:'Sessions',projects:'Projects',docs:'API Docs',settings:'Settings',account:'Account',logout:'Logout',login:'Login',username:'Username',password:'Password',recentMem:'Recent Memories',noMem:'No memories yet.',noSess:'No sessions.',noProj:'No projects.',noRes:'No results.',search:'Search',allProj:'All projects',allTypes:'All types',newMem:'+ New',newMemTitle:'New Memory',project:'Project',type:'Type',content:'Content',tags:'Tags (comma)',save:'Save',cancel:'Cancel',delete:'Delete',back:'← Back',status:'Status',device:'Device',branch:'Branch',time:'Time',session:'Session',showContent:'Show content',chgUser:'Change Username',chgPwd:'Change Password',oldPwd:'Old Password',newPwd:'New Password',updatePwd:'Update Password',apiKeys:'API Keys',apiKeysDesc:'Generate API Keys for MCP and REST API authentication.',keyName:'Key name (e.g. macstudio)',genKey:'Generate Key',name:'Name',key:'Key',lastUsed:'Last Used',created:'Created',saved:'Saved',deleted:'Deleted',required:'Project & Content required',enterQuery:'Enter query',min6:'Min 6 chars',fillBoth:'Fill both fields',usrUpdated:'Username updated',pwdUpdated:'Password updated',keyGen:'Key generated',settingsSaved:'Settings saved',embeddingApi:'Embedding API',llmApi:'LLM (Compression)',github:'GitHub',token:'Token',owner:'Owner',webhookSecret:'Webhook Secret',reset:'Reset',mcpConn:'MCP Connection',mcpEndpoint:'Your MCP endpoint:',quickStart:'Quick Start',quickStartDesc:'Recalla is a cross-device AI memory sync tool. Configure your AI tools to connect via MCP protocol, and your AI will remember everything across devices.',autoRules:'Auto-recall Rules',autoRulesDesc:"Add to your project's",mcpTools:'MCP Tools',tool:'Tool',desc:'Description',restApi:'REST API',restApiDesc:'Use API Key in Authorization: Bearer rk-xxx header. Generate keys in Account → API Keys.',method:'Method',endpoint:'Endpoint',example:'Example: Save Memory',selfDeploy:'Self-Deploy',defaultLogin:'Default login:',memInfra:'memory infrastructure',confirm:'Confirm delete?',
+    // Teams
+    teams:'Teams',createTeam:'+ Create Team',teamName:'Team name',teamCreated:'Team created',pendingInvites:'Pending Invites',team:'Team',accept:'Accept',noTeams:'No teams yet. Create one above.',createdAt:'Created',members:'Members',shared:'Shared',sharedMemories:'Shared Memories',teamSearch:'Team Search',activity:'Activity',inviteUser:'Username to invite',invite:'Invite',inviteSent:'Invite sent',role:'Role',joinedAt:'Joined',noActivity:'No activity.',noShared:'No shared memories.',noLinked:'No projects linked.',addProject:'Add',projectName:'Project name',searchTeamMem:'Search team memories...',joinedTeam:'Joined team',
+    // Sessions sync
+    syncLocal:'Sync Local Sessions',syncTitle:'Sync Local Claude Sessions',syncDesc:'Select local Claude session files (.jsonl). Multi-select supported. Usually in ~/.claude/projects/.',deviceName:'Device Name',clickSelect:'Click to select .jsonl files (multi-select)',startSync:'Start Sync',syncing:'Syncing...',syncDone:'Done',retry:'Retry',filesSelected:'file(s) selected',validSessions:'valid session(s)',messages:'messages',
+    // Settings providers
+    providerCompat:'Provider Compatibility',providerNote:'Note',embeddingProvider:'Embedding Provider',llmProvider:'LLM Provider',forSemanticSearch:'For semantic search vector embeddings',forCompression:'For session compression',noProvider:'-- none --',alreadyExists:'already exists',enterProviderName:'Enter provider name:',
+    // GitHub
+    repos:'Repositories',refresh:'Refresh',commits:'Commits',lang:'Lang',repoDesc:'Repo',webhookDesc:'Add this URL in GitHub repo Settings > Webhooks to auto-record push and PR events.',payloadUrl:'Payload URL:',contentType:'Content type:',events:'Events:',noToken:'GitHub Token not configured. Set it in Settings.',recentCommits:'Recent Commits',message:'Message',author:'Author',loadFailed:'Failed to load.',
+    // Briefing
+    briefing:'Briefing',
+    // Knowledge Graph
+    knowledgeGraph:'Knowledge Graph'},
+  zh:{overview:'概览',memories:'记忆',sessions:'会话',projects:'项目',docs:'API 文档',settings:'设置',account:'账户',logout:'退出',login:'登录',username:'用户名',password:'密码',recentMem:'最近记忆',noMem:'暂无记忆',noSess:'暂无会话',noProj:'暂无项目',noRes:'无结果',search:'搜索',allProj:'全部项目',allTypes:'全部类型',newMem:'+ 新建',newMemTitle:'新建记忆',project:'项目',type:'类型',content:'内容',tags:'标签（逗号分隔）',save:'保存',cancel:'取消',delete:'删除',back:'← 返回',status:'状态',device:'设备',branch:'分支',time:'时间',session:'会话',showContent:'展开内容',chgUser:'修改用户名',chgPwd:'修改密码',oldPwd:'旧密码',newPwd:'新密码',updatePwd:'更新密码',apiKeys:'API 密钥',apiKeysDesc:'生成 API 密钥用于 MCP 和 REST API 认证。',keyName:'密钥名称（如 macstudio）',genKey:'生成密钥',name:'名称',key:'密钥',lastUsed:'上次使用',created:'创建时间',saved:'已保存',deleted:'已删除',required:'项目和内容必填',enterQuery:'请输入搜索内容',min6:'至少 6 位',fillBoth:'请填写两个字段',usrUpdated:'用户名已更新',pwdUpdated:'密码已更新',keyGen:'密钥已生成',settingsSaved:'设置已保存',embeddingApi:'向量嵌入 API',llmApi:'LLM（会话压缩）',github:'GitHub',token:'令牌',owner:'所有者',webhookSecret:'Webhook 密钥',reset:'重置',mcpConn:'MCP 连接',mcpEndpoint:'你的 MCP 端点：',quickStart:'快速开始',quickStartDesc:'Recalla 是一个跨设备 AI 记忆同步工具。配置你的 AI 工具通过 MCP 协议连接，AI 将记住跨设备的所有内容。',autoRules:'自动调用规则',autoRulesDesc:'添加到你项目的',mcpTools:'MCP 工具',tool:'工具',desc:'说明',restApi:'REST API',restApiDesc:'在 Authorization: Bearer rk-xxx 请求头中使用 API Key。在 账户 → API 密钥 中生成。',method:'方法',endpoint:'端点',example:'示例：保存记忆',selfDeploy:'自部署',defaultLogin:'默认登录：',memInfra:'AI 记忆基础设施',confirm:'确认删除？',
+    // Teams
+    teams:'团队',createTeam:'+ 创建团队',teamName:'团队名称',teamCreated:'团队已创建',pendingInvites:'待处理邀请',team:'团队',accept:'接受',noTeams:'还没有团队，点击上方按钮创建。',createdAt:'创建于',members:'成员',shared:'共享',sharedMemories:'共享记忆',teamSearch:'团队搜索',activity:'动态',inviteUser:'输入用户名邀请',invite:'邀请',inviteSent:'邀请已发送',role:'角色',joinedAt:'加入时间',noActivity:'暂无动态',noShared:'暂无共享记忆',noLinked:'没有关联项目',addProject:'添加',projectName:'项目名称',searchTeamMem:'搜索团队记忆...',joinedTeam:'已加入团队',
+    // Sessions sync
+    syncLocal:'同步本地会话',syncTitle:'同步本地 Claude 会话',syncDesc:'选择本地 Claude 会话文件（.jsonl），支持多选。通常位于 ~/.claude/projects/ 目录下。',deviceName:'设备名称',clickSelect:'点击选择 .jsonl 文件（支持多选）',startSync:'开始同步',syncing:'同步中...',syncDone:'完成',retry:'重试',filesSelected:'个文件已选择',validSessions:'个有效会话',messages:'条消息',
+    // Settings providers
+    providerCompat:'提供商兼容性',providerNote:'说明',embeddingProvider:'向量嵌入提供商',llmProvider:'LLM 提供商',forSemanticSearch:'用于语义搜索的向量嵌入',forCompression:'用于会话压缩',noProvider:'-- 未选择 --',alreadyExists:'已存在',enterProviderName:'输入提供商名称：',
+    // GitHub
+    repos:'仓库列表',refresh:'刷新',commits:'提交',lang:'语言',repoDesc:'仓库',webhookDesc:'在 GitHub 仓库 Settings > Webhooks 中添加以下 URL，即可自动记录 push 和 PR 事件。',payloadUrl:'Payload URL:',contentType:'Content type:',events:'触发事件：',noToken:'GitHub Token 未配置，请在设置中配置。',recentCommits:'最近提交',message:'消息',author:'作者',loadFailed:'加载失败',
+    // Briefing
+    briefing:'简报',
+    // Knowledge Graph
+    knowledgeGraph:'知识图谱'}
 };
 const L=k=>I[LANG]?.[k]||I.en[k]||k;
 function setLang(l){LANG=l;localStorage.setItem('lang',l);location.reload()}
@@ -157,7 +181,7 @@ async function pgS(){document.getElementById('main').innerHTML=`<div class="p-8"
 <div class="flex items-center justify-between mb-6">
   <h2 class="text-xl font-bold font-mono">${L('sessions')}</h2>
   <div class="flex gap-2">
-    <button class="btn bp text-sm" onclick="showSyncModal()">${LANG==='zh'?'同步本地会话':'Sync Local Sessions'}</button>
+    <button class="btn bp text-sm" onclick="showSyncModal()">${L('syncLocal')}</button>
   </div>
 </div>
 <div id="sl"></div></div>`;const d=await api('GET','/api/sessions');if(!(d?.sessions||[]).length){document.getElementById('sl').innerHTML=`<p class="text-fg-3 text-sm font-mono">${L('noSess')}</p>`;return}document.getElementById('sl').innerHTML=`<table><thead><tr><th>${L('project')}</th><th>${L('session')}</th><th>${L('device')}</th><th>${L('branch')}</th><th>${L('time')}</th></tr></thead><tbody>${d.sessions.map(s=>`<tr class="cursor-pointer" onclick="nav('projectDetail','${s.project}')"><td class="font-mono text-sm text-accent">${E(s.project)}</td><td class="font-mono text-sm text-fg-3">${E((s.session_id||'').substring(0,16))}</td><td class="font-mono text-sm">${E(s.device||'—')}</td><td class="font-mono text-sm text-accent">${E(s.branch||'—')}</td><td class="text-sm text-fg-3">${T(s.created_at)}</td></tr>`).join('')}</tbody></table>`}
@@ -195,29 +219,29 @@ async function pgTeams(){
   // 加载邀请
   const inv=await api('GET','/api/invites');
   if(inv?.invites?.length){
-    document.getElementById('invites-box').innerHTML=`<div class="card mb-6"><h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-3">${LANG==='zh'?'待处理邀请':'Pending Invites'}</h3>${inv.invites.map(i=>`<div class="flex items-center justify-between p-3 border border-border mb-2"><span class="font-mono text-sm">${LANG==='zh'?'团队':'Team'}: <span class="text-accent">${E(i.team_name)}</span></span><button class="btn bp" style="padding:4px 12px;font-size:12px" onclick="acceptInv('${i.id}')">${LANG==='zh'?'接受':'Accept'}</button></div>`).join('')}</div>`;
+    document.getElementById('invites-box').innerHTML=`<div class="card mb-6"><h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-3">${L('pendingInvites')}</h3>${inv.invites.map(i=>`<div class="flex items-center justify-between p-3 border border-border mb-2"><span class="font-mono text-sm">${L('team')}: <span class="text-accent">${E(i.team_name)}</span></span><button class="btn bp" style="padding:4px 12px;font-size:12px" onclick="acceptInv('${i.id}')">${L('accept')}</button></div>`).join('')}</div>`;
   }
 
   // 加载团队列表
   const d=await api('GET','/api/teams');
   if(!(d?.teams||[]).length){
-    document.getElementById('teams-list').innerHTML=`<p class="text-fg-3 text-sm font-mono">${LANG==='zh'?'还没有团队，点击上方按钮创建。':'No teams yet. Create one above.'}</p>`;
+    document.getElementById('teams-list').innerHTML=`<p class="text-fg-3 text-sm font-mono">${L('noTeams')}</p>`;
     return;
   }
   document.getElementById('teams-list').innerHTML=d.teams.map(t=>`<div class="card mb-4 cursor-pointer hover:border-accent" onclick="nav('teamDetail','${t.id}')">
     <div class="flex items-center gap-3"><span class="inline-block w-3 h-3 bg-accent"></span><span class="font-mono text-lg font-bold">${E(t.name)}</span></div>
-    <p class="text-xs text-fg-3 mt-2">${LANG==='zh'?'创建于':'Created'}: ${T(t.created_at)}</p>
+    <p class="text-xs text-fg-3 mt-2">${L('createdAt')}: ${T(t.created_at)}</p>
   </div>`).join('');
 }
 
 function showCreateTeam(){
-  const name=prompt(LANG==='zh'?'团队名称：':'Team name:');
+  const name=prompt(L('teamName'));
   if(!name)return;
-  api('POST','/api/teams',{name}).then(d=>{if(d){toast(LANG==='zh'?'团队已创建':'Team created');nav('teams')}});
+  api('POST','/api/teams',{name}).then(d=>{if(d){toast(L('teamCreated'));nav('teams')}});
 }
 async function acceptInv(id){
   await api('POST','/api/invites/'+id+'/accept');
-  toast(LANG==='zh'?'已加入团队':'Joined team');
+  toast(L('joinedTeam'));
   nav('teams');
 }
 
@@ -235,9 +259,9 @@ async function pgTeamDetail(teamID){
     </div>
 
     <div class="grid grid-cols-3 gap-4 mb-6">
-      <div class="card"><p class="text-xs text-fg-3 uppercase mb-1">${LANG==='zh'?'成员':'Members'}</p><p class="text-2xl font-bold font-mono text-accent">${(d.members||[]).length}</p></div>
-      <div class="card"><p class="text-xs text-fg-3 uppercase mb-1">${LANG==='zh'?'项目':'Projects'}</p><p class="text-2xl font-bold font-mono text-success">${(d.projects||[]).length}</p></div>
-      <div class="card"><p class="text-xs text-fg-3 uppercase mb-1">${LANG==='zh'?'共享记忆':'Shared'}</p><p class="text-2xl font-bold font-mono text-warn">${d.shared_count||0}</p></div>
+      <div class="card"><p class="text-xs text-fg-3 uppercase mb-1">${L('members')}</p><p class="text-2xl font-bold font-mono text-accent">${(d.members||[]).length}</p></div>
+      <div class="card"><p class="text-xs text-fg-3 uppercase mb-1">${L('projects')}</p><p class="text-2xl font-bold font-mono text-success">${(d.projects||[]).length}</p></div>
+      <div class="card"><p class="text-xs text-fg-3 uppercase mb-1">${L('sharedMemories')}</p><p class="text-2xl font-bold font-mono text-warn">${d.shared_count||0}</p></div>
     </div>
 
     <div class="flex gap-2 mb-6">
@@ -261,10 +285,10 @@ async function tdTab(tab,teamID){
     case 'members': {
       const d=await api('GET','/api/teams/'+teamID+'/members');
       el.innerHTML=`<div class="mb-4 flex gap-3">
-        <input id="inv-user" placeholder="${LANG==='zh'?'输入用户名邀请':'Username to invite'}" class="font-mono text-sm flex-1">
-        <button class="btn bp text-sm" onclick="inviteUser('${teamID}')">${LANG==='zh'?'邀请':'Invite'}</button>
+        <input id="inv-user" placeholder="${L('inviteUser')}" class="font-mono text-sm flex-1">
+        <button class="btn bp text-sm" onclick="inviteUser('${teamID}')">${L('invite')}</button>
       </div>
-      <table><thead><tr><th>${LANG==='zh'?'用户名':'Username'}</th><th>${LANG==='zh'?'角色':'Role'}</th><th>${LANG==='zh'?'加入时间':'Joined'}</th><th></th></tr></thead>
+      <table><thead><tr><th>${L('username')}</th><th>${L('role')}</th><th>${L('joinedAt')}</th><th></th></tr></thead>
       <tbody>${(d?.members||[]).map(m=>`<tr>
         <td class="font-mono text-sm">${E(m.username)}</td>
         <td class="font-mono text-sm ${m.role==='owner'?'text-accent':''}">${m.role}</td>
@@ -276,20 +300,20 @@ async function tdTab(tab,teamID){
     case 'projects': {
       const d=await api('GET','/api/teams/'+teamID+'/projects');
       el.innerHTML=`<div class="mb-4 flex gap-3">
-        <input id="add-proj" placeholder="${LANG==='zh'?'项目名称':'Project name'}" class="font-mono text-sm flex-1">
-        <button class="btn bp text-sm" onclick="addTeamProj('${teamID}')">${LANG==='zh'?'添加':'Add'}</button>
+        <input id="add-proj" placeholder="${L('projectName')}" class="font-mono text-sm flex-1">
+        <button class="btn bp text-sm" onclick="addTeamProj('${teamID}')">${L('addProject')}</button>
       </div>
-      ${(d?.projects||[]).length?d.projects.map(p=>`<div class="card mb-2"><span class="font-mono">${E(p)}</span></div>`).join(''):`<p class="text-fg-3 text-sm font-mono">${LANG==='zh'?'没有关联项目':'No projects linked.'}</p>`}`;
+      ${(d?.projects||[]).length?d.projects.map(p=>`<div class="card mb-2"><span class="font-mono">${E(p)}</span></div>`).join(''):`<p class="text-fg-3 text-sm font-mono">${L('noLinked')}</p>`}`;
       break;
     }
     case 'shared': {
       const d=await api('GET','/api/teams/'+teamID+'/memories');
-      el.innerHTML=(d?.memories||[]).map(m=>mc(m)).join('')||`<p class="text-fg-3 text-sm font-mono">${LANG==='zh'?'没有共享记忆':'No shared memories.'}</p>`;
+      el.innerHTML=(d?.memories||[]).map(m=>mc(m)).join('')||`<p class="text-fg-3 text-sm font-mono">${L('noShared')}</p>`;
       break;
     }
     case 'search': {
       el.innerHTML=`<div class="flex gap-3 mb-4">
-        <input id="ts-q" placeholder="${LANG==='zh'?'搜索团队记忆...':'Search team memories...'}" class="font-mono text-sm flex-1">
+        <input id="ts-q" placeholder="${L('searchTeamMem')}" class="font-mono text-sm flex-1">
         <button class="btn bp text-sm" onclick="teamSearch('${teamID}')">${L('search')}</button>
       </div><div id="ts-results"></div>`;
       break;
@@ -302,7 +326,7 @@ async function tdTab(tab,teamID){
         <span class="text-sm">${E(a.action)}</span>
         <span class="text-sm text-fg-3">${E(a.detail)}</span>
         <span class="text-xs text-fg-3 ml-auto">${T(a.created_at)}</span>
-      </div>`).join(''):`<p class="text-fg-3 text-sm font-mono">${LANG==='zh'?'暂无活动':'No activity.'}</p>`;
+      </div>`).join(''):`<p class="text-fg-3 text-sm font-mono">${L('noActivity')}</p>`;
       break;
     }
   }
@@ -312,7 +336,7 @@ async function inviteUser(teamID){
   const u=document.getElementById('inv-user').value;
   if(!u)return;
   const d=await api('POST','/api/teams/'+teamID+'/invite',{username:u});
-  if(d){toast(LANG==='zh'?'邀请已发送':'Invite sent');document.getElementById('inv-user').value=''}
+  if(d){toast(L('inviteSent'));document.getElementById('inv-user').value=''}
 }
 async function rmMember(teamID,uid){
   if(!confirm(L('confirm')))return;
@@ -338,16 +362,14 @@ async function pgGH(){
     <h2 class="text-xl font-bold font-mono mb-6">GitHub</h2>
     <div class="card mb-6">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider">${LANG==='zh'?'仓库列表':'Repositories'}</h3>
-        <button class="btn bg" style="padding:4px 10px;font-size:12px" onclick="pgGH()">${LANG==='zh'?'刷新':'Refresh'}</button>
+        <h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider">${L('repos')}</h3>
+        <button class="btn bg" style="padding:4px 10px;font-size:12px" onclick="pgGH()">${L('refresh')}</button>
       </div>
       <div id="gh-repos"></div>
     </div>
     <div class="card mb-6">
       <h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">Webhook</h3>
-      <p class="text-sm text-fg-2 mb-3">${LANG==='zh'
-        ?'在 GitHub 仓库 Settings > Webhooks 中添加以下 URL，即可自动记录 push 和 PR 事件。'
-        :'Add this URL in GitHub repo Settings > Webhooks to auto-record push and PR events.'}</p>
+      <p class="text-sm text-fg-2 mb-3">${L('webhookDesc')}</p>
       <div class="bg-bg-1 p-4 border border-border mb-3">
         <p class="text-xs text-fg-3 mb-1">Payload URL:</p>
         <pre class="text-sm font-mono text-accent">${location.origin}/api/github/webhook</pre>
@@ -357,7 +379,7 @@ async function pgGH(){
         <pre class="text-sm font-mono">application/json</pre>
       </div>
       <div class="bg-bg-1 p-4 border border-border">
-        <p class="text-xs text-fg-3 mb-1">${LANG==='zh'?'触发事件':'Events'}:</p>
+        <p class="text-xs text-fg-3 mb-1">${L('events')}:</p>
         <pre class="text-sm font-mono">Pushes, Pull requests</pre>
       </div>
     </div>
@@ -366,17 +388,17 @@ async function pgGH(){
   // 加载仓库
   const d=await api('GET','/api/github/repos');
   if(!d||!d.repos){
-    document.getElementById('gh-repos').innerHTML=`<p class="text-fg-3 text-sm font-mono">${LANG==='zh'?'GitHub Token 未配置或无效，请在 Settings 中配置。':'GitHub Token not configured. Set it in Settings.'}</p>`;
+    document.getElementById('gh-repos').innerHTML=`<p class="text-fg-3 text-sm font-mono">${L('noToken')}</p>`;
     return;
   }
   document.getElementById('gh-repos').innerHTML=`<table>
-    <thead><tr><th>${LANG==='zh'?'仓库':'Repo'}</th><th>${LANG==='zh'?'语言':'Lang'}</th><th>${LANG==='zh'?'分支':'Branch'}</th><th>${LANG==='zh'?'更新':'Updated'}</th><th></th></tr></thead>
+    <thead><tr><th>${L('repoDesc')}</th><th>${L('lang')}</th><th>${L('branch')}</th><th>${L('created')}</th><th></th></tr></thead>
     <tbody>${d.repos.map(r=>`<tr>
       <td><span class="font-mono text-sm text-accent">${E(r.full_name)}</span>${r.private?' <span class="tag">private</span>':''}${r.description?'<br><span class="text-xs text-fg-3">'+E(r.description.substring(0,60))+'</span>':''}</td>
       <td class="font-mono text-sm">${E(r.language||'—')}</td>
       <td class="font-mono text-sm">${E(r.default_branch)}</td>
       <td class="text-sm text-fg-3">${T(r.updated_at)}</td>
-      <td><button class="btn bg" style="padding:4px 10px;font-size:11px" onclick="ghCommits('${r.full_name}')">${LANG==='zh'?'提交':'Commits'}</button></td>
+      <td><button class="btn bg" style="padding:4px 10px;font-size:11px" onclick="ghCommits('${r.full_name}')">${L('commits')}</button></td>
     </tr>`).join('')}</tbody>
   </table>`;
 }
@@ -384,7 +406,7 @@ async function pgGH(){
 async function ghCommits(fullName){
   const el=document.getElementById('gh-commits');
   el.classList.remove('hidden');
-  el.innerHTML=`<div class="card"><h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">${E(fullName)} — ${LANG==='zh'?'最近提交':'Recent Commits'}</h3><div id="gh-cl"><p class="text-fg-3 text-sm font-mono">Loading...</p></div></div>`;
+  el.innerHTML=`<div class="card"><h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">${E(fullName)} — ${L('recentCommits')}</h3><div id="gh-cl"><p class="text-fg-3 text-sm font-mono">Loading...</p></div></div>`;
   el.scrollIntoView({behavior:'smooth'});
 
   const [owner,repo]=fullName.split('/');
@@ -394,7 +416,7 @@ async function ghCommits(fullName){
     return;
   }
   document.getElementById('gh-cl').innerHTML=`<table>
-    <thead><tr><th>SHA</th><th>${LANG==='zh'?'消息':'Message'}</th><th>${LANG==='zh'?'作者':'Author'}</th><th>${LANG==='zh'?'时间':'Time'}</th></tr></thead>
+    <thead><tr><th>SHA</th><th>${L('message')}</th><th>${L('author')}</th><th>${L('time')}</th></tr></thead>
     <tbody>${d.commits.map(c=>`<tr>
       <td class="font-mono text-sm text-accent">${E(c.sha)}</td>
       <td class="text-sm">${E(c.message.split('\n')[0].substring(0,80))}</td>
@@ -469,12 +491,12 @@ function renderCfg(d){
     <div>
       <label class="text-xs text-fg-3 mb-1 block">Embedding Provider</label>
       <select class="font-mono text-sm" onchange="cfgActiveEmbed=this.value">${embedOpts||'<option value="">-- none --</option>'}</select>
-      <p class="text-xs text-fg-3 mt-1">${LANG==='zh'?'用于语义搜索的向量嵌入':'For semantic search vector embeddings'}</p>
+      <p class="text-xs text-fg-3 mt-1">${L('forSemanticSearch')}</p>
     </div>
     <div>
       <label class="text-xs text-fg-3 mb-1 block">LLM Provider</label>
       <select class="font-mono text-sm" onchange="cfgActiveLLM=this.value">${llmOpts||'<option value="">-- none --</option>'}</select>
-      <p class="text-xs text-fg-3 mt-1">${LANG==='zh'?'用于会话压缩':'For session compression'}</p>
+      <p class="text-xs text-fg-3 mt-1">${L('forCompression')}</p>
     </div>
   </div>
 </div>
@@ -489,14 +511,14 @@ function renderCfg(d){
 </div>
 
 <div class="card mb-6">
-  <h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">${LANG==='zh'?'提供商兼容性':'Provider Compatibility'}</h3>
+  <h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">${L('providerCompat')}</h3>
   <table>
-    <thead><tr><th>${LANG==='zh'?'提供商':'Provider'}</th><th>Embedding</th><th>LLM</th><th>${LANG==='zh'?'说明':'Note'}</th></tr></thead>
+    <thead><tr><th>${L('repoDesc')}</th><th>Embedding</th><th>LLM</th><th>${L('providerNote')}</th></tr></thead>
     <tbody>
-      <tr><td class="font-mono text-sm">OpenAI</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> text-embedding-3-small/large</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> gpt-4o-mini</td><td class="text-sm text-fg-3">${LANG==='zh'?'质量最好':'Best quality'}</td></tr>
-      <tr><td class="font-mono text-sm">Qwen</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> text-embedding-v3</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> qwen-plus</td><td class="text-sm text-fg-3">${LANG==='zh'?'中文好，便宜':'Good Chinese, cheap'}</td></tr>
-      <tr><td class="font-mono text-sm">DeepSeek</td><td class="text-danger text-sm"><span class="text-danger font-bold">-</span> ${LANG==='zh'?'不支持':'Not supported'}</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> deepseek-chat</td><td class="text-sm text-fg-3">${LANG==='zh'?'只能做压缩':'LLM only'}</td></tr>
-      <tr><td class="font-mono text-sm">Ollama</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> nomic-embed-text</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> ${LANG==='zh'?'本地模型':'Local models'}</td><td class="text-sm text-fg-3">${LANG==='zh'?'本地部署':'Self-hosted'}</td></tr>
+      <tr><td class="font-mono text-sm">OpenAI</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> text-embedding-3-small/large</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> gpt-4o-mini</td><td class="text-sm text-fg-3">${L('providerNote')}</td></tr>
+      <tr><td class="font-mono text-sm">Qwen</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> text-embedding-v3</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> qwen-plus</td><td class="text-sm text-fg-3">${L('providerNote')}</td></tr>
+      <tr><td class="font-mono text-sm">DeepSeek</td><td class="text-danger text-sm"><span class="text-danger font-bold">-</span> ${L('providerNote')}</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> deepseek-chat</td><td class="text-sm text-fg-3">${L('providerNote')}</td></tr>
+      <tr><td class="font-mono text-sm">Ollama</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> nomic-embed-text</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> ${L('providerNote')}</td><td class="text-sm text-fg-3">${L('providerNote')}</td></tr>
     </tbody>
   </table>
 </div>
@@ -505,7 +527,7 @@ function renderCfg(d){
 
 function addPreset(name){
   if(name==='custom'){
-    const n=prompt(LANG==='zh'?'输入提供商名称：':'Enter provider name:')||'';
+    const n=prompt(L('enterProviderName'))||'';
     if(!n)return;
     cfgProviders.push({name:n,url:'',key:'',embed_model:'',llm_model:'',embedding_dim:1024});
   } else {
@@ -659,21 +681,19 @@ cd recalla && docker compose up -d</pre>
 function showSyncModal(){
   const o=document.createElement('div');o.className='modal-bg';o.id='modal';o.onclick=e=>{if(e.target===o)o.remove()};
   o.innerHTML=`<div class="card w-[650px]">
-    <h3 class="text-lg font-mono font-bold mb-4">${LANG==='zh'?'同步本地 Claude 会话':'Sync Local Claude Sessions'}</h3>
-    <p class="text-sm text-fg-2 mb-4">${LANG==='zh'
-      ?'选择你本地的 Claude 会话文件（.jsonl），支持多选。文件通常位于 ~/.claude/projects/ 目录下。'
-      :'Select local Claude session files (.jsonl). Multi-select supported. Usually in ~/.claude/projects/.'}</p>
+    <h3 class="text-lg font-mono font-bold mb-4">${L('syncTitle')}</h3>
+    <p class="text-sm text-fg-2 mb-4">${L('syncDesc')}</p>
     <div class="mb-4">
-      <label class="text-xs text-fg-3 mb-1 block">${LANG==='zh'?'设备名称':'Device Name'}</label>
+      <label class="text-xs text-fg-3 mb-1 block">${L('deviceName')}</label>
       <input id="sync-device" class="font-mono text-sm" placeholder="Macbook / Mac Studio / Ubuntu">
     </div>
     <div class="border border-border border-dashed p-8 text-center mb-4 cursor-pointer hover:border-accent" onclick="document.getElementById('sync-files').click()">
-      <p class="text-fg-3 text-sm font-mono">${LANG==='zh'?'点击选择 .jsonl 文件（支持多选）':'Click to select .jsonl files (multi-select)'}</p>
+      <p class="text-fg-3 text-sm font-mono">${L('clickSelect')}</p>
       <p class="text-xs text-fg-3 mt-2" id="sync-status"></p>
       <input type="file" id="sync-files" multiple accept=".jsonl" style="display:none" onchange="onSyncFiles(this)">
     </div>
     <div class="flex gap-4">
-      <button class="btn bp text-sm" onclick="doSync()" id="sync-btn" disabled>${LANG==='zh'?'开始同步':'Start Sync'}</button>
+      <button class="btn bp text-sm" onclick="doSync()" id="sync-btn" disabled>${L('startSync')}</button>
       <button class="btn bg text-sm" onclick="document.getElementById('modal').remove()">${L('cancel')}</button>
     </div>
     <div id="sync-log" class="mt-4 max-h-48 overflow-y-auto"></div>
@@ -683,7 +703,7 @@ function showSyncModal(){
 let syncParsed=[];
 function onSyncFiles(input){
   const files=Array.from(input.files);
-  document.getElementById('sync-status').textContent=files.length+(LANG==='zh'?' 个文件已选择':' file(s) selected');
+  document.getElementById('sync-status').textContent=files.length+' '+L('filesSelected');
   document.getElementById('sync-btn').disabled=false;
   syncParsed=[];
   let loaded=0;
@@ -703,7 +723,7 @@ function onSyncFiles(input){
         syncParsed.push({project:project.replace(/-Users-pan-projects-/g,'').replace(/-Users-pan-/g,'').split('--claude-worktrees-')[0],session_id:f.name.replace('.jsonl',''),content:summary,messages:msgs.length});
       }
       loaded++;
-      if(loaded===files.length)document.getElementById('sync-status').textContent=syncParsed.length+'/'+files.length+(LANG==='zh'?' 个有效会话':' valid session(s)')+' ('+syncParsed.reduce((a,s)=>a+s.messages,0)+(LANG==='zh'?' 条消息':' messages')+')';
+      if(loaded===files.length)document.getElementById('sync-status').textContent=syncParsed.length+'/'+files.length+' '+L('validSessions')+' ('+syncParsed.reduce((a,s)=>a+s.messages,0)+' '+L('messages')+')';
     };reader.readAsText(f);
   });
 }
@@ -712,14 +732,14 @@ async function doSync(){
   const device=document.getElementById('sync-device').value||'Unknown';
   const log=document.getElementById('sync-log');
   const btn=document.getElementById('sync-btn');
-  btn.disabled=true;btn.textContent=LANG==='zh'?'同步中...':'Syncing...';
+  btn.disabled=true;btn.textContent=L('syncing');
   const sessions=syncParsed.map(s=>({...s,device,branch:''}));
   const d=await api('POST','/api/sessions/import',{sessions});
   if(d){
-    log.innerHTML='<p class="text-success text-sm font-mono">'+(LANG==='zh'?'同步完成：'+d.imported+'/'+d.total+' 个会话':'Done: '+d.imported+'/'+d.total+' sessions imported')+'</p>';
-    btn.textContent=LANG==='zh'?'完成':'Done';
+    log.innerHTML='<p class="text-success text-sm font-mono">'+L('syncDone')+': '+d.imported+'/'+d.total+'</p>';
+    btn.textContent=L('syncDone');
     setTimeout(()=>{document.getElementById('modal')?.remove();nav('sessions')},2000);
-  }else{btn.disabled=false;btn.textContent=LANG==='zh'?'重试':'Retry'}
+  }else{btn.disabled=false;btn.textContent=L('retry')}
 }
 </script>
 </body>
