@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  # Recalla API 服务
+  recalla:
+    build: .
+    ports:
+      - "14200:14200"
+    environment:
+      RECALLA_ADDR: ":14200"
+      RECALLA_API_KEY: "${RECALLA_API_KEY:-changeme}"
+      RECALLA_DB_URL: "postgres://recalla:recalla2025@postgres:5432/recalla?sslmode=disable"
+      RECALLA_QDRANT_URL: "http://qdrant:6333"
+      RECALLA_QDRANT_COLLECTION: "memories"
+      RECALLA_EMBEDDING_URL: "${RECALLA_EMBEDDING_URL:-https://api.openai.com/v1/embeddings}"
+      RECALLA_EMBEDDING_KEY: "${RECALLA_EMBEDDING_KEY}"
+      RECALLA_EMBEDDING_MODEL: "${RECALLA_EMBEDDING_MODEL:-text-embedding-3-small}"
+      RECALLA_LLM_URL: "${RECALLA_LLM_URL:-https://api.openai.com/v1/chat/completions}"
+      RECALLA_LLM_KEY: "${RECALLA_LLM_KEY}"
+      RECALLA_LLM_MODEL: "${RECALLA_LLM_MODEL:-gpt-4o-mini}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    restart: unless-stopped
+
+  # PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: recalla
+      POSTGRES_PASSWORD: recalla2025
+      POSTGRES_DB: recalla
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    # 不暴露到宿主机，仅容器内部通信
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recalla"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Qdrant 向量数据库
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6333:6333"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  qdrant_data:
