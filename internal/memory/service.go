@@ -33,6 +33,12 @@ func (s *Service) Save(ctx context.Context, userID string, req SaveRequest) (*Me
 	id := uuid.New().String()
 	now := time.Now()
 
+	// 自动标签：根据内容关键词分配标准标签
+	tags := req.Tags
+	if len(tags) == 0 {
+		tags = autoTag(req.Content, req.Type)
+	}
+
 	// 重要性评分默认值
 	importance := req.Importance
 	if importance <= 0 || importance > 1 {
@@ -42,12 +48,15 @@ func (s *Service) Save(ctx context.Context, userID string, req SaveRequest) (*Me
 	if req.Type == "decision" && importance < 0.7 {
 		importance = 0.7
 	}
+	// bug/deploy 类也提高
+	if req.Type == "bug" && importance < 0.6 { importance = 0.6 }
+	if req.Type == "deploy" && importance < 0.6 { importance = 0.6 }
 
 	// 存入 Postgres
 	_, err := s.db.Pool.Exec(ctx, `
 		INSERT INTO memories (id, user_id, project, type, content, tags, metadata, importance, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`, id, userID, req.Project, req.Type, req.Content, req.Tags, req.Metadata, importance, now, now)
+	`, id, userID, req.Project, req.Type, req.Content, tags, req.Metadata, importance, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("保存记忆失败: %w", err)
 	}
@@ -64,7 +73,7 @@ func (s *Service) Save(ctx context.Context, userID string, req SaveRequest) (*Me
 			"user_id":   userID,
 			"project":   req.Project,
 			"type":      req.Type,
-			"tags":      req.Tags,
+			"tags":      tags,
 		}
 		if err := s.qdrant.Upsert(context.Background(), id, vec, payload); err != nil {
 			log.Printf("存入 Qdrant 失败: %v", err)
@@ -77,7 +86,7 @@ func (s *Service) Save(ctx context.Context, userID string, req SaveRequest) (*Me
 		Project:    req.Project,
 		Type:       req.Type,
 		Content:    req.Content,
-		Tags:       req.Tags,
+		Tags:       tags,
 		Metadata:   req.Metadata,
 		Importance: importance,
 		CreatedAt:  now,
@@ -706,4 +715,158 @@ func (s *Service) Delete(ctx context.Context, userID string, memoryID string) er
 	}()
 
 	return nil
+}
+
+// ========== 知识图谱 ==========
+
+// EntityFact 实体事实
+type EntityFact struct {
+	ID         string     `json:"id"`
+	Subject    string     `json:"subject"`
+	Predicate  string     `json:"predicate"`
+	Object     string     `json:"object"`
+	Project    string     `json:"project,omitempty"`
+	ValidFrom  time.Time  `json:"valid_from"`
+	ValidUntil *time.Time `json:"valid_until,omitempty"`
+	SourceID   string     `json:"source_id,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+}
+
+// AddFact 添加实体事实
+func (s *Service) AddFact(ctx context.Context, userID string, fact EntityFact) (*EntityFact, error) {
+	fact.ID = uuid.New().String()
+	fact.CreatedAt = time.Now()
+	if fact.ValidFrom.IsZero() { fact.ValidFrom = fact.CreatedAt }
+
+	_, err := s.db.Pool.Exec(ctx, `
+		INSERT INTO entity_facts (id, user_id, subject, predicate, object, project, valid_from, valid_until, source_id, created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+	`, fact.ID, userID, fact.Subject, fact.Predicate, fact.Object, fact.Project, fact.ValidFrom, fact.ValidUntil, fact.SourceID, fact.CreatedAt)
+	if err != nil { return nil, fmt.Errorf("添加事实失败: %w", err) }
+	return &fact, nil
+}
+
+// InvalidateFact 使事实失效
+func (s *Service) InvalidateFact(ctx context.Context, userID, factID string) error {
+	_, err := s.db.Pool.Exec(ctx, `UPDATE entity_facts SET valid_until=$1 WHERE id=$2 AND user_id=$3`, time.Now(), factID, userID)
+	return err
+}
+
+// QueryFacts 查询实体事实（当前有效的）
+func (s *Service) QueryFacts(ctx context.Context, userID string, subject, predicate, project string, includeExpired bool) ([]EntityFact, error) {
+	query := `SELECT id, subject, predicate, object, COALESCE(project,''), valid_from, valid_until, COALESCE(source_id::text,''), created_at
+		FROM entity_facts WHERE user_id=$1`
+	args := []any{userID}
+	n := 2
+
+	if subject != "" {
+		query += fmt.Sprintf(` AND LOWER(subject) LIKE LOWER($%d)`, n)
+		args = append(args, "%"+subject+"%")
+		n++
+	}
+	if predicate != "" {
+		query += fmt.Sprintf(` AND predicate=$%d`, n)
+		args = append(args, predicate)
+		n++
+	}
+	if project != "" {
+		query += fmt.Sprintf(` AND project=$%d`, n)
+		args = append(args, project)
+		n++
+	}
+	if !includeExpired {
+		query += ` AND valid_until IS NULL`
+	}
+	query += ` ORDER BY created_at DESC LIMIT 50`
+
+	rows, err := s.db.Pool.Query(ctx, query, args...)
+	if err != nil { return nil, err }
+	defer rows.Close()
+
+	var facts []EntityFact
+	for rows.Next() {
+		var f EntityFact
+		var sourceID string
+		if err := rows.Scan(&f.ID, &f.Subject, &f.Predicate, &f.Object, &f.Project, &f.ValidFrom, &f.ValidUntil, &sourceID, &f.CreatedAt); err == nil {
+			f.SourceID = sourceID
+			facts = append(facts, f)
+		}
+	}
+	return facts, nil
+}
+
+// CheckContradiction 检查矛盾（保存新记忆时自动调用）
+func (s *Service) CheckContradiction(ctx context.Context, userID, content string) ([]Memory, error) {
+	// 用语义搜索找到最相似的记忆
+	vec, err := s.embedder.Embed(ctx, content)
+	if err != nil { return nil, nil } // embedding 失败不阻塞
+
+	must := []map[string]any{{"key": "user_id", "match": map[string]any{"value": userID}}}
+	results, err := s.qdrant.Search(ctx, vec, 3, map[string]any{"must": must})
+	if err != nil { return nil, nil }
+
+	// 找到相似度 > 0.7 的记忆（可能是矛盾或更新）
+	var contradictions []Memory
+	for _, r := range results {
+		if r.Score > 0.7 {
+			rows, _ := s.db.Pool.Query(ctx, `
+				SELECT id, user_id, project, type, content, summary, tags, metadata, importance, created_at, updated_at
+				FROM memories WHERE id=$1
+			`, r.ID)
+			if rows != nil {
+				for rows.Next() {
+					var m Memory
+					var summary *string
+					if err := rows.Scan(&m.ID, &m.UserID, &m.Project, &m.Type, &m.Content, &summary, &m.Tags, &m.Metadata, &m.Importance, &m.CreatedAt, &m.UpdatedAt); err == nil {
+						if summary != nil { m.Summary = *summary }
+						m.Score = r.Score
+						contradictions = append(contradictions, m)
+					}
+				}
+				rows.Close()
+			}
+		}
+	}
+	return contradictions, nil
+}
+
+// autoTag 根据内容自动分配标准标签
+func autoTag(content, memType string) []string {
+	lower := strings.ToLower(content)
+	var tags []string
+	seen := map[string]bool{}
+
+	add := func(tag string) {
+		if !seen[tag] { tags = append(tags, tag); seen[tag] = true }
+	}
+
+	// 基于类型
+	if memType != "" { add(memType) }
+
+	// 基于关键词匹配
+	rules := map[string][]string{
+		"decision":     {"决定", "决策", "选择", "decide", "chose", "选型", "方案"},
+		"bug":          {"bug", "修复", "fix", "错误", "error", "问题", "issue", "crash"},
+		"deploy":       {"部署", "deploy", "上线", "发布", "release", "服务器", "systemctl"},
+		"architecture": {"架构", "architecture", "设计", "design", "重构", "refactor", "模块"},
+		"code":         {"代码", "函数", "function", "实现", "implement", "新增", "添加"},
+		"insight":      {"发现", "洞察", "insight", "原来", "原因", "理解", "学到"},
+		"procedure":    {"流程", "步骤", "procedure", "how to", "教程", "配置"},
+		"experience":   {"经验", "教训", "experience", "踩坑", "注意", "避免"},
+		"fact":         {"事实", "数据", "fact", "统计", "版本", "配置值"},
+		"github":       {"github", "commit", "push", "pr", "pull request", "merge"},
+	}
+
+	for tag, keywords := range rules {
+		for _, kw := range keywords {
+			if strings.Contains(lower, kw) {
+				add(tag)
+				break
+			}
+		}
+	}
+
+	if len(tags) > 4 { tags = tags[:4] }
+	if len(tags) == 0 { tags = []string{"note"} }
+	return tags
 }

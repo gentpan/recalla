@@ -79,6 +79,7 @@ func main() {
 	if cfg.TelegramToken != "" {
 		tgBot := tgpkg.NewBot(cfg.TelegramToken, memService, compressor)
 		mux.HandleFunc("POST /api/telegram/webhook", tgBot.HandleWebhook)
+		handler.SetTelegramBot(tgBot)
 		log.Println("Telegram Bot 已启用")
 	}
 

@@ -27,7 +27,7 @@ func New(ctx context.Context, databaseURL string) (*DB, error) {
 
 // Migrate 执行数据库迁移（按顺序执行所有迁移文件）
 func (d *DB) Migrate(ctx context.Context) error {
-	files := []string{"migrations/001_init.sql", "migrations/002_fix_project_status.sql", "migrations/003_users.sql", "migrations/004_configs.sql", "migrations/005_phase2.sql"}
+	files := []string{"migrations/001_init.sql", "migrations/002_fix_project_status.sql", "migrations/003_users.sql", "migrations/004_configs.sql", "migrations/005_phase2.sql", "migrations/006_knowledge_graph.sql"}
 	for _, f := range files {
 		sql, err := os.ReadFile(f)
 		if err != nil {
