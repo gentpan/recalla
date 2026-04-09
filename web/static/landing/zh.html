@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recalla — AI 记忆基础设施</title>
+<meta name="description" content="开源、自部署的 AI 记忆基础设施。换电脑不丢上下文，AI 帮你接着写。">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.bluecdn.com">
+<link href="https://fonts.bluecdn.com/css2?family=Lexend+Deca:wght@400;500;600;700;800&family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;border-radius:0!important}
+:root{--bg:#0a0a12;--bg2:#12121e;--bg3:#1a1a2e;--fg:#e0e0ec;--fg2:#8888a0;--accent:#0052D9;--accent2:#3373e0;--border:#2a2a3e;--success:#4ade80;--mono:'JetBrains Mono',monospace}
+body{background:var(--bg);color:var(--fg);font-family:'Sora',sans-serif;overflow-x:hidden}
+a{color:var(--accent2);text-decoration:none}a:hover{text-decoration:underline}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,18,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 40px;height:60px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{font-family:'Lexend Deca',sans-serif;font-size:20px;font-weight:700;color:var(--fg);display:flex;align-items:center;gap:10px;cursor:pointer}
+.nav-logo .dot{width:16px;height:16px;background:var(--accent)}
+.nav-links{display:flex;align-items:center;gap:24px;font-size:14px}
+.nav-links a{color:var(--fg2)}.nav-links a:hover{color:var(--fg);text-decoration:none}
+.btn{display:inline-block;padding:10px 24px;font-weight:600;font-size:14px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff;border:none}.btn-primary:hover{background:var(--accent2);text-decoration:none}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--fg)}.btn-ghost:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+.hero{padding:160px 40px 100px;text-align:center;max-width:900px;margin:0 auto}
+.hero h1{font-family:'Lexend Deca',sans-serif;font-size:52px;font-weight:800;line-height:1.2;margin-bottom:24px;background:linear-gradient(135deg,#fff 0%,#8888a0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:18px;color:var(--fg2);line-height:1.8;max-width:600px;margin:0 auto 40px}
+.hero-btns{display:flex;gap:16px;justify-content:center}
+.code-block{background:var(--bg2);border:1px solid var(--border);padding:20px 24px;margin:60px auto 0;max-width:600px;text-align:left;font-family:var(--mono);font-size:14px;color:var(--fg2);line-height:1.8;position:relative}
+.code-block .prompt{color:var(--success)}.code-block .cmd{color:var(--fg)}
+section{padding:100px 40px;max-width:1100px;margin:0 auto}
+.section-title{font-family:'Lexend Deca',sans-serif;font-size:36px;font-weight:700;margin-bottom:16px}
+.section-sub{font-size:16px;color:var(--fg2);margin-bottom:60px;max-width:600px}
+.problem-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
+.problem-card{background:var(--bg2);border:1px solid var(--border);padding:32px;transition:border-color .15s}.problem-card:hover{border-color:var(--accent)}
+.problem-card h3{font-size:18px;font-weight:600;margin-bottom:12px}.problem-card p{font-size:14px;color:var(--fg2);line-height:1.7}
+.arch{background:var(--bg2);border:1px solid var(--border);padding:40px;font-family:var(--mono);font-size:14px;line-height:2;color:var(--fg2);white-space:pre;overflow-x:auto}
+.arch .hl{color:var(--accent2)}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.feat{background:var(--bg2);border:1px solid var(--border);padding:32px}.feat:hover{border-color:var(--accent)}
+.feat h3{font-family:'Lexend Deca',sans-serif;font-size:16px;font-weight:600;margin-bottom:8px}.feat p{font-size:14px;color:var(--fg2);line-height:1.7}
+.feat code{font-family:var(--mono);font-size:13px;color:var(--accent2);background:var(--bg);padding:2px 6px}
+.tools-table{width:100%;border-collapse:collapse;font-size:14px}
+.tools-table th{text-align:left;padding:14px 20px;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--fg2);border-bottom:1px solid var(--border);font-weight:500}
+.tools-table td{padding:14px 20px;border-bottom:1px solid rgba(42,42,62,.5)}.tools-table tr:hover td{background:var(--bg2)}
+.tools-table .tool-name{font-family:var(--mono);color:var(--accent2)}
+.cta{text-align:center;padding:100px 40px;background:var(--bg2);border-top:1px solid var(--border)}
+.cta h2{font-family:'Lexend Deca',sans-serif;font-size:36px;font-weight:700;margin-bottom:16px}.cta p{color:var(--fg2);margin-bottom:32px;font-size:16px}
+footer{padding:40px;text-align:center;font-size:13px;color:var(--fg2);border-top:1px solid var(--border)}
+.lang-switch{font-size:13px;display:flex;gap:8px}
+.lang-switch a{padding:4px 12px;border:1px solid var(--border);color:var(--fg2)}.lang-switch a:hover,.lang-switch a.active{border-color:var(--accent);color:var(--accent);text-decoration:none}
+@media(max-width:768px){.hero h1{font-size:30px}.hero p{font-size:15px}.problem-grid,.feat-grid{grid-template-columns:1fr}nav{padding:0 20px}section{padding:60px 20px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo"><div class="dot"></div>recalla</div>
+  <div class="nav-links">
+    <a href="#features">功能</a>
+    <a href="#architecture">架构</a>
+    <a href="#tools">MCP 工具</a>
+    <a href="https://github.com/gentpan/recalla" target="_blank">GitHub</a>
+    <div class="lang-switch">
+      <a href="/landing/">EN</a>
+      <a href="/landing/zh.html" class="active">ZH</a>
+    </div>
+    <a href="https://peter.recalla.dev" class="btn btn-primary">控制台</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>让 AI 拥有长期记忆</h1>
+  <p>Recalla 是一个开源、自部署的 AI 记忆基础设施。跨设备存储、搜索、同步上下文 — 换电脑不丢上下文，AI 帮你接着写。</p>
+  <div class="hero-btns">
+    <a href="https://github.com/gentpan/recalla" class="btn btn-primary" target="_blank">开始使用</a>
+    <a href="#architecture" class="btn btn-ghost">工作原理</a>
+  </div>
+  <div class="code-block">
+    <span class="prompt">$</span> <span class="cmd">git clone https://github.com/gentpan/recalla.git</span><br>
+    <span class="prompt">$</span> <span class="cmd">cd recalla && docker compose up -d</span><br>
+    <span class="fg2"># 完成。记忆层已启动。</span>
+  </div>
+</div>
+
+<section>
+  <div class="section-title">AI 天生没有记忆</div>
+  <div class="section-sub">每次对话都从零开始。没有记忆、没有延续、没有上下文。你在不同设备和工具之间不断重复自己。</div>
+  <div class="problem-grid">
+    <div class="problem-card">
+      <h3>上下文丢失</h3>
+      <p>从 MacBook 切换到台式机 — AI 完全不知道你之前在做什么。决策遗忘、进度丢失。</p>
+    </div>
+    <div class="problem-card">
+      <h3>重复劳动</h3>
+      <p>每次新会话都要解释同样的架构、同样的代码库、同样的约束条件。每台设备，每次都来一遍。</p>
+    </div>
+    <div class="problem-card">
+      <h3>没有延续性</h3>
+      <p>Token 限制、会话中断、工具切换。上下文只是一个瞬间消失的短期缓存。</p>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="section-title">Recalla 解决这个问题</div>
+  <div class="section-sub">一个持久化、可搜索、跨设备的 AI 记忆层。</div>
+  <div class="feat-grid">
+    <div class="feat">
+      <h3>跨设备同步</h3>
+      <p>记忆存在你自己的服务器上。换设备后，AI 自动接上上次的进度 — 分支、设备、决策，全部记住。</p>
+    </div>
+    <div class="feat">
+      <h3>语义搜索</h3>
+      <p>用自然语言找到相关上下文。基于向量搜索（Qdrant），支持 OpenAI、Qwen、Ollama 嵌入模型。</p>
+    </div>
+    <div class="feat">
+      <h3>MCP 协议</h3>
+      <p>一个服务，所有工具通用。通过标准 MCP 协议支持 <code>Claude Code</code> <code>Cursor</code> <code>VS Code</code> <code>Codex</code>。</p>
+    </div>
+    <div class="feat">
+      <h3>AI 压缩</h3>
+      <p>长会话自动压缩为结构化摘要。关键决策、代码变更、待办事项全部保留。上下文限制不再是问题。</p>
+    </div>
+    <div class="feat">
+      <h3>GitHub 集成</h3>
+      <p>通过 Webhook 自动记录 push 和 PR 事件。在控制台浏览仓库和提交历史。</p>
+    </div>
+    <div class="feat">
+      <h3>自部署</h3>
+      <p>数据在你自己的服务器上，零第三方依赖。Docker 一键部署。MIT 开源协议。</p>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="section-title">架构</div>
+  <div class="section-sub">简单、快速、自包含。</div>
+  <div class="arch"><span class="hl">Claude / Cursor / Codex / VS Code</span>  (任意设备)
+           |
+           | MCP 协议
+           v
+    <span class="hl">Recalla 服务器</span>  (Go, 单二进制)
+    REST API + MCP + 控制台
+           |
+     ------+------+------
+     |            |           |
+<span class="hl">Postgres</span>     <span class="hl">Qdrant</span>      <span class="hl">AI API</span>
+  元数据       向量       嵌入/压缩</div>
+</section>
+
+<section id="tools">
+  <div class="section-title">MCP 工具</div>
+  <div class="section-sub">六个工具，让你的 AI 拥有持久记忆。</div>
+  <table class="tools-table">
+    <thead><tr><th>工具</th><th>功能</th><th>使用时机</th></tr></thead>
+    <tbody>
+      <tr><td class="tool-name">context_restore</td><td>恢复项目上下文 — 上次设备、分支、最近记忆</td><td>每次对话开始</td></tr>
+      <tr><td class="tool-name">memory_save</td><td>保存记忆 — 决策、代码变更、Bug 修复、部署</td><td>做出重要操作后</td></tr>
+      <tr><td class="tool-name">memory_search</td><td>语义搜索所有记忆</td><td>开始新任务前</td></tr>
+      <tr><td class="tool-name">session_sync</td><td>同步当前会话到云端，记录设备和分支信息</td><td>对话结束时</td></tr>
+      <tr><td class="tool-name">session_compress</td><td>AI 压缩长会话为结构化摘要</td><td>上下文过长时</td></tr>
+      <tr><td class="tool-name">project_list</td><td>列出所有已记录的项目</td><td>发现和浏览</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="cta">
+  <h2>30 秒启动</h2>
+  <p>克隆、部署、连接。从现在开始，你的 AI 记住一切。</p>
+  <div style="display:flex;gap:16px;justify-content:center">
+    <a href="https://github.com/gentpan/recalla" class="btn btn-primary" target="_blank">GitHub</a>
+    <a href="https://peter.recalla.dev" class="btn btn-ghost">在线演示</a>
+  </div>
+</div>
+
+<footer>
+  Recalla 开源项目，MIT 协议。为跨设备开发者而生。<br>
+  <a href="https://github.com/gentpan/recalla">GitHub</a> · <a href="https://peter.recalla.dev">控制台</a>
+</footer>
+
+</body>
+</html>

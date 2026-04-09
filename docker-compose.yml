@@ -18,6 +18,8 @@ services:
       RECALLA_LLM_URL: "${RECALLA_LLM_URL:-https://api.openai.com/v1/chat/completions}"
       RECALLA_LLM_KEY: "${RECALLA_LLM_KEY}"
       RECALLA_LLM_MODEL: "${RECALLA_LLM_MODEL:-gpt-4o-mini}"
+    volumes:
+      - recalla_config:/opt/recalla
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,3 +60,4 @@ services:
 volumes:
   pg_data:
   qdrant_data:
+  recalla_config:
