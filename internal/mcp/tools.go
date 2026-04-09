@@ -167,5 +167,92 @@ func getToolDefinitions() []map[string]any {
 				"required": []string{"file_key"},
 			},
 		},
+		{
+			"name":        "team_search",
+			"description": "搜索团队共享记忆。在团队协作场景中，搜索所有团队成员的记忆。需要提供 team_id，可通过 project_list 或 Dashboard 获取。",
+			"inputSchema": map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"team_id": map[string]any{
+						"type":        "string",
+						"description": "团队 ID",
+					},
+					"query": map[string]any{
+						"type":        "string",
+						"description": "搜索查询",
+					},
+					"limit": map[string]any{
+						"type":        "integer",
+						"description": "返回结果数量，默认 10",
+					},
+				},
+				"required": []string{"team_id", "query"},
+			},
+		},
+		{
+			"name":        "team_share",
+			"description": "将一条记忆共享到团队。团队其他成员可以通过 team_search 搜索到此记忆。",
+			"inputSchema": map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"team_id": map[string]any{
+						"type":        "string",
+						"description": "团队 ID",
+					},
+					"memory_id": map[string]any{
+						"type":        "string",
+						"description": "要共享的记忆 ID",
+					},
+				},
+				"required": []string{"team_id", "memory_id"},
+			},
+		},
+		{
+			"name":        "add_fact",
+			"description": "添加一条实体事实到知识图谱。用于记录谁负责什么、项目用了什么技术等事实性信息。支持时间有效性（valid_until）。",
+			"inputSchema": map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"subject": map[string]any{
+						"type":        "string",
+						"description": "主体：人名、项目名、技术名",
+					},
+					"predicate": map[string]any{
+						"type":        "string",
+						"description": "关系：works_on, uses, decided, owns, manages, deployed_to",
+					},
+					"object": map[string]any{
+						"type":        "string",
+						"description": "客体：项目、技术、方案、服务器",
+					},
+					"project": map[string]any{
+						"type":        "string",
+						"description": "关联项目",
+					},
+				},
+				"required": []string{"subject", "predicate", "object"},
+			},
+		},
+		{
+			"name":        "query_facts",
+			"description": "查询知识图谱中的事实。例如：查询某人负责什么项目、某项目用了什么技术。只返回当前有效的事实。",
+			"inputSchema": map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"subject": map[string]any{
+						"type":        "string",
+						"description": "按主体过滤（模糊匹配）",
+					},
+					"predicate": map[string]any{
+						"type":        "string",
+						"description": "按关系过滤",
+					},
+					"project": map[string]any{
+						"type":        "string",
+						"description": "按项目过滤",
+					},
+				},
+			},
+		},
 	}
 }

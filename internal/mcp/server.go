@@ -274,6 +274,56 @@ func (s *Server) callTool(r *http.Request, userID, name string, args json.RawMes
 		data, _ := json.MarshalIndent(cfg, "", "  ")
 		return string(data), nil
 
+	case "team_search":
+		var req struct {
+			TeamID string `json:"team_id"`
+			Query  string `json:"query"`
+			Limit  int    `json:"limit"`
+		}
+		if err := json.Unmarshal(args, &req); err != nil {
+			return "", fmt.Errorf("参数格式错误: %w", err)
+		}
+		memories, err := s.mem.SearchTeamMemories(ctx, userID, req.TeamID, req.Query, req.Limit)
+		if err != nil { return "", err }
+		if len(memories) == 0 { return "团队中没有找到相关记忆。", nil }
+		data, _ := json.MarshalIndent(memories, "", "  ")
+		return string(data), nil
+
+	case "team_share":
+		var req struct {
+			TeamID   string `json:"team_id"`
+			MemoryID string `json:"memory_id"`
+		}
+		if err := json.Unmarshal(args, &req); err != nil {
+			return "", fmt.Errorf("参数格式错误: %w", err)
+		}
+		if err := s.mem.ShareMemory(ctx, req.TeamID, req.MemoryID, userID); err != nil { return "", err }
+		return "记忆已共享到团队。", nil
+
+	case "add_fact":
+		var req memory.EntityFact
+		if err := json.Unmarshal(args, &req); err != nil {
+			return "", fmt.Errorf("参数格式错误: %w", err)
+		}
+		fact, err := s.mem.AddFact(ctx, userID, req)
+		if err != nil { return "", err }
+		return fmt.Sprintf("事实已记录：%s %s %s (ID: %s)", fact.Subject, fact.Predicate, fact.Object, fact.ID[:8]), nil
+
+	case "query_facts":
+		var req struct {
+			Subject   string `json:"subject"`
+			Predicate string `json:"predicate"`
+			Project   string `json:"project"`
+		}
+		if err := json.Unmarshal(args, &req); err != nil {
+			return "", fmt.Errorf("参数格式错误: %w", err)
+		}
+		facts, err := s.mem.QueryFacts(ctx, userID, req.Subject, req.Predicate, req.Project, false)
+		if err != nil { return "", err }
+		if len(facts) == 0 { return "没有找到相关事实。", nil }
+		data, _ := json.MarshalIndent(facts, "", "  ")
+		return string(data), nil
+
 	default:
 		return "", fmt.Errorf("未知工具: %s", name)
 	}
