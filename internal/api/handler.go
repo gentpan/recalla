@@ -237,13 +237,15 @@ func (h *Handler) compressSession(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Content string `json:"content"`
 		Project string `json:"project,omitempty"`
+		Mode    string `json:"mode,omitempty"` // brief, structured, detailed
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Content == "" {
 		writeError(w, http.StatusBadRequest, "content 不能为空")
 		return
 	}
+	if req.Mode == "" { req.Mode = "structured" }
 
-	compressed, err := h.compressor.Compress(r.Context(), req.Content)
+	compressed, err := h.compressor.CompressWithMode(r.Context(), req.Content, req.Mode)
 	if err != nil {
 		log.Printf("压缩失败: %v", err)
 		writeError(w, http.StatusInternalServerError, "压缩失败")
