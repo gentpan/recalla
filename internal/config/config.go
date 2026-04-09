@@ -119,9 +119,9 @@ func (c *Config) GetEmbeddingConfig() (url, key, model string, dim int) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	for _, p := range c.Providers {
-		if p.Name == c.ActiveEmbedding {
-			return p.EmbeddingURL(), p.Key, p.EmbedModel, p.EmbeddingDim
+	for i := range c.Providers {
+		if c.Providers[i].Name == c.ActiveEmbedding {
+			return c.Providers[i].EmbeddingURL(), c.Providers[i].Key, c.Providers[i].EmbedModel, c.Providers[i].EmbeddingDim
 		}
 	}
 	// 回退到旧配置
@@ -133,9 +133,9 @@ func (c *Config) GetLLMConfig() (url, key, model string) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	for _, p := range c.Providers {
-		if p.Name == c.ActiveLLM {
-			return p.LLMURL(), p.Key, p.LLMModel
+	for i := range c.Providers {
+		if c.Providers[i].Name == c.ActiveLLM {
+			return c.Providers[i].LLMURL(), c.Providers[i].Key, c.Providers[i].LLMModel
 		}
 	}
 	return c.LLMURL, c.LLMKey, c.LLMModel
