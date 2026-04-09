@@ -1,0 +1,7 @@
+dist/
+/server
+*.exe
+.env
+.DS_Store
+.mcp.json
+config.json

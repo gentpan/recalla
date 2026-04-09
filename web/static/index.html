@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recalla — Dashboard</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="preconnect" href="https://fonts.bluecdn.com">
+<link href="https://fonts.bluecdn.com/css2?family=Lexend+Deca:wght@400;500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class',theme:{extend:{colors:{bg:{1:'#1e1e2e',2:'#252535',3:'#2d2d3f',4:'#363649'},fg:{1:'#dce0e5',2:'#a0a4ab',3:'#6b7080'},accent:'#0052D9',success:'#a6e3a1',warn:'#f9e2af',danger:'#f38ba8',border:'#3b414d'},fontFamily:{logo:['Lexend Deca','sans-serif'],mono:['JetBrains Mono','SF Mono','monospace'],sans:['Sora','Inter','system-ui','sans-serif']}}}}</script>
+<style>
+*{border-radius:0!important}body{background:#1e1e2e;color:#dce0e5}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#252535}::-webkit-scrollbar-thumb{background:#3b414d}
+.tag{display:inline-block;padding:2px 8px;font-size:12px;background:#2d2d3f;border:1px solid #3b414d;margin:2px 4px 2px 0}
+input,textarea,select{background:#252535!important;border:1px solid #3b414d!important;color:#dce0e5!important;padding:8px 12px;outline:none;width:100%}input:focus,textarea:focus{border-color:#0052D9!important}
+.btn{padding:8px 16px;font-weight:600;cursor:pointer;font-size:13px;font-family:'JetBrains Mono',monospace}.bp{background:#0052D9;color:#ffffff}.bp:hover{background:#003EA1}.bg{background:transparent;border:1px solid #3b414d;color:#dce0e5}.bg:hover{border-color:#0052D9;color:#0052D9}.bd{background:transparent;border:1px solid #f38ba8;color:#f38ba8}.bd:hover{background:#f38ba8;color:#1e1e2e}
+.nav-item{padding:10px 20px;cursor:pointer;border-left:2px solid transparent;color:#a0a4ab;font-size:14px}.nav-item:hover{color:#dce0e5;background:#252535}.nav-item.active{border-left-color:#0052D9;color:#0052D9;background:#252535}
+.card{background:#252535;border:1px solid #3b414d;padding:20px}.mi{background:#252535;border:1px solid #3b414d;padding:16px;margin-bottom:8px;transition:border-color .15s}.mi:hover{border-color:#0052D9}
+table{width:100%;border-collapse:collapse}th{text-align:left;padding:12px 16px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6b7080;border-bottom:1px solid #3b414d}td{padding:12px 16px;border-bottom:1px solid #2d2d3f;font-size:13px}tr:hover td{background:#2d2d3f}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50}
+.tab{padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;color:#a0a4ab;font-size:13px}.tab:hover{color:#dce0e5}.tab.active{border-bottom-color:#0052D9;color:#0052D9}
+.sc{background:#1e1e2e;border:1px solid #3b414d;padding:16px;margin-top:8px;white-space:pre-wrap;font-size:13px;max-height:300px;overflow-y:auto}
+pre.code{background:#1e1e2e;border:1px solid #3b414d;padding:16px;overflow-x:auto;font-size:13px;line-height:1.6}
+</style>
+</head>
+<body class="dark font-sans">
+<!-- 登录页 -->
+<div id="login-page" class="flex items-center justify-center h-screen">
+  <div class="card w-96">
+    <h1 class="text-xl font-bold font-mono mb-1"><span class="inline-block w-4 h-4 bg-accent mr-2" style="vertical-align:middle"></span><span class="font-logo">recalla</span></h1>
+    <p class="text-xs text-fg-3 mb-6" id="l-sub">memory infrastructure</p>
+    <div class="space-y-4">
+      <div><label class="text-xs text-fg-3 mb-1 block" id="l-ul"></label><input id="l-u" class="font-mono text-sm" value="admin"></div>
+      <div><label class="text-xs text-fg-3 mb-1 block" id="l-pl"></label><input type="password" id="l-p" class="font-mono text-sm" value=""></div>
+      <button class="btn bp w-full" onclick="doLogin()" id="l-btn"></button>
+      <p id="l-err" class="text-danger text-xs font-mono hidden"></p>
+    </div>
+  </div>
+</div>
+
+<!-- 主界面 -->
+<div id="app" class="flex h-screen hidden">
+  <aside class="w-56 bg-bg-2 border-r border-border flex flex-col shrink-0">
+    <div class="p-5 border-b border-border">
+      <h1 class="text-lg font-bold font-mono tracking-tight cursor-pointer" onclick="nav('overview')"><span class="inline-block w-4 h-4 bg-accent mr-2" style="vertical-align:middle"></span><span class="font-logo">recalla</span></h1>
+      <p class="text-xs text-fg-3 mt-1" id="nav-user"></p>
+    </div>
+    <nav class="flex-1 py-2" id="nav-list">
+      <div class="nav-item active" data-page="overview" onclick="nav('overview')" data-i18n="overview"></div>
+      <div class="nav-item" data-page="memories" onclick="nav('memories')" data-i18n="memories"></div>
+      <div class="nav-item" data-page="sessions" onclick="nav('sessions')" data-i18n="sessions"></div>
+      <div class="nav-item" data-page="projects" onclick="nav('projects')" data-i18n="projects"></div>
+      <div class="nav-item" data-page="github" onclick="nav('github')" data-i18n="github"></div>
+      <div class="nav-item" data-page="docs" onclick="nav('docs')" data-i18n="docs"></div>
+      <div class="nav-item" data-page="settings" onclick="nav('settings')" data-i18n="settings"></div>
+      <div class="nav-item" data-page="account" onclick="nav('account')" data-i18n="account"></div>
+    </nav>
+    <div class="p-4 border-t border-border flex items-center justify-between">
+      <button class="text-xs text-fg-3 font-mono hover:text-danger cursor-pointer" onclick="logout()" id="nav-logout"></button>
+      <div class="flex gap-1">
+        <button class="text-xs font-mono px-2 py-1 cursor-pointer" onclick="setLang('en')" style="color:${LANG==='en'?'#0052D9':'#6b7080'}">EN</button>
+        <button class="text-xs font-mono px-2 py-1 cursor-pointer" onclick="setLang('zh')" style="color:${LANG==='zh'?'#0052D9':'#6b7080'}">中</button>
+      </div>
+    </div>
+  </aside>
+  <main class="flex-1 overflow-y-auto" id="main"></main>
+</div>
+<div id="toast" style="display:none;position:fixed;bottom:24px;right:24px;padding:12px 20px;background:#252535;border:1px solid #3b414d;z-index:99;font-size:13px;font-family:monospace"></div>
+
+<script>
+let TOKEN='',USER=null,LANG=localStorage.getItem('lang')||'en';
+const I={
+  en:{overview:'Overview',memories:'Memories',sessions:'Sessions',projects:'Projects',docs:'API Docs',settings:'Settings',account:'Account',logout:'Logout',login:'Login',username:'Username',password:'Password',recentMem:'Recent Memories',noMem:'No memories yet.',noSess:'No sessions.',noProj:'No projects.',noRes:'No results.',search:'Search',allProj:'All projects',allTypes:'All types',newMem:'+ New',newMemTitle:'New Memory',project:'Project',type:'Type',content:'Content',tags:'Tags (comma)',save:'Save',cancel:'Cancel',delete:'Delete',back:'← Back',status:'Status',device:'Device',branch:'Branch',time:'Time',session:'Session',showContent:'Show content',chgUser:'Change Username',chgPwd:'Change Password',oldPwd:'Old Password',newPwd:'New Password',updatePwd:'Update Password',apiKeys:'API Keys',apiKeysDesc:'Generate API Keys for MCP and REST API authentication.',keyName:'Key name (e.g. macstudio)',genKey:'Generate Key',name:'Name',key:'Key',lastUsed:'Last Used',created:'Created',saved:'Saved',deleted:'Deleted',required:'Project & Content required',enterQuery:'Enter query',min6:'Min 6 chars',fillBoth:'Fill both fields',usrUpdated:'Username updated',pwdUpdated:'Password updated',keyGen:'Key generated',settingsSaved:'Settings saved',embeddingApi:'Embedding API',llmApi:'LLM (Compression)',github:'GitHub',token:'Token',owner:'Owner',webhookSecret:'Webhook Secret',reset:'Reset',mcpConn:'MCP Connection',mcpEndpoint:'Your MCP endpoint:',quickStart:'Quick Start',quickStartDesc:'Recalla is a cross-device AI memory sync tool. Configure your AI tools to connect via MCP protocol, and your AI will remember everything across devices.',autoRules:'Auto-recall Rules',autoRulesDesc:'Add to your project\'s',mcpTools:'MCP Tools',tool:'Tool',desc:'Description',restApi:'REST API',restApiDesc:'Use API Key in Authorization: Bearer rk-xxx header. Generate keys in Account → API Keys.',method:'Method',endpoint:'Endpoint',example:'Example: Save Memory',selfDeploy:'Self-Deploy',defaultLogin:'Default login:',memInfra:'memory infrastructure',confirm:'Confirm delete?'},
+  zh:{overview:'概览',memories:'记忆',sessions:'会话',projects:'项目',docs:'API 文档',settings:'设置',account:'账户',logout:'退出',login:'登录',username:'用户名',password:'密码',recentMem:'最近记忆',noMem:'暂无记忆',noSess:'暂无会话',noProj:'暂无项目',noRes:'无结果',search:'搜索',allProj:'全部项目',allTypes:'全部类型',newMem:'+ 新建',newMemTitle:'新建记忆',project:'项目',type:'类型',content:'内容',tags:'标签（逗号分隔）',save:'保存',cancel:'取消',delete:'删除',back:'← 返回',status:'状态',device:'设备',branch:'分支',time:'时间',session:'会话',showContent:'展开内容',chgUser:'修改用户名',chgPwd:'修改密码',oldPwd:'旧密码',newPwd:'新密码',updatePwd:'更新密码',apiKeys:'API 密钥',apiKeysDesc:'生成 API 密钥用于 MCP 和 REST API 认证。',keyName:'密钥名称（如 macstudio）',genKey:'生成密钥',name:'名称',key:'密钥',lastUsed:'上次使用',created:'创建时间',saved:'已保存',deleted:'已删除',required:'项目和内容必填',enterQuery:'请输入搜索内容',min6:'至少 6 位',fillBoth:'请填写两个字段',usrUpdated:'用户名已更新',pwdUpdated:'密码已更新',keyGen:'密钥已生成',settingsSaved:'设置已保存',embeddingApi:'向量嵌入 API',llmApi:'LLM（会话压缩）',github:'GitHub',token:'令牌',owner:'所有者',webhookSecret:'Webhook 密钥',reset:'重置',mcpConn:'MCP 连接',mcpEndpoint:'你的 MCP 端点：',quickStart:'快速开始',quickStartDesc:'Recalla 是一个跨设备 AI 记忆同步工具。配置你的 AI 工具通过 MCP 协议连接，AI 将记住跨设备的所有内容。',autoRules:'自动调用规则',autoRulesDesc:'添加到你项目的',mcpTools:'MCP 工具',tool:'工具',desc:'说明',restApi:'REST API',restApiDesc:'在 Authorization: Bearer rk-xxx 请求头中使用 API Key。在 账户 → API 密钥 中生成。',method:'方法',endpoint:'端点',example:'示例：保存记忆',selfDeploy:'自部署',defaultLogin:'默认登录：',memInfra:'AI 记忆基础设施',confirm:'确认删除？'}
+};
+const L=k=>I[LANG]?.[k]||I.en[k]||k;
+function setLang(l){LANG=l;localStorage.setItem('lang',l);location.reload()}
+const E=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const T=s=>{try{return new Date(s).toLocaleString()}catch{return'—'}};
+const TC={decision:'text-warn',code:'text-accent',note:'text-fg-2',conversation:'text-success',session:'text-fg-3'};
+function toast(m,e){const el=document.getElementById('toast');el.textContent=m;el.style.borderColor=e?'#f38ba8':'#0052D9';el.style.display='block';setTimeout(()=>el.style.display='none',3000)}
+
+async function api(method,path,body){
+  try{const o={method,headers:{'Content-Type':'application/json'}};
+  if(TOKEN)o.headers['Authorization']='Bearer '+TOKEN;
+  if(body)o.body=JSON.stringify(body);
+  const r=await fetch(path,o);const d=await r.json();
+  if(!r.ok){if(r.status===401){logout();return null}toast(d.error||'Error',true);return null}return d}
+  catch(e){toast('Network error',true);return null}}
+
+// 登录
+async function doLogin(){
+  const u=document.getElementById('l-u').value,p=document.getElementById('l-p').value;
+  const d=await api('POST','/api/auth/login',{username:u,password:p});
+  if(!d)return;TOKEN=d.token;USER=d.user;
+  localStorage.setItem('token',TOKEN);
+  document.getElementById('login-page').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('nav-user').textContent=USER.username+' ('+USER.role+')';
+  nav('overview');
+}
+function logout(){TOKEN='';USER=null;localStorage.removeItem('token');location.reload()}
+
+// i18n 渲染静态元素
+function renderI18n(){
+  document.getElementById('l-sub').textContent=L('memInfra');
+  document.getElementById('l-ul').textContent=L('username');
+  document.getElementById('l-pl').textContent=L('password');
+  document.getElementById('l-btn').textContent=L('login');
+  document.getElementById('nav-logout').textContent=L('logout');
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=L(el.dataset.i18n)});
+}
+
+// 自动登录
+(function(){
+  renderI18n();
+  const t=localStorage.getItem('token');
+  if(t){TOKEN=t;api('GET','/api/auth/me').then(d=>{
+    if(d){USER=d;document.getElementById('login-page').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('nav-user').textContent=USER.username+' ('+USER.role+')';nav('overview')}
+  })}
+  document.getElementById('l-p').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+})();
+
+// 导航
+let CP='overview';
+function nav(p,a){CP=p;document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===p));
+({overview:pgO,memories:pgM,sessions:pgS,projects:pgP,settings:pgCfg,account:pgAcc,docs:pgDocs,github:pgGH,projectDetail:pgPD}[p]||pgO)(a)}
+
+// 记忆卡片
+function mc(m,rl){const tags=(m.tags||[]).map(t=>`<span class="tag">${E(t)}</span>`).join('');
+const sc=m.score?`<span class="text-xs font-mono text-accent">${(m.score*100).toFixed(0)}%</span>`:'';
+return`<div class="mi"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-3"><span class="text-xs font-mono ${TC[m.type]||'text-fg-3'} uppercase">${m.type||'note'}</span><span class="text-xs font-mono text-fg-3">${E(m.project)}</span>${sc}</div><div class="flex items-center gap-3"><span class="text-xs text-fg-3">${T(m.created_at)}</span><button class="bd btn" style="padding:4px 10px;font-size:12px" onclick="delM('${m.id}','${rl||''}')">×</button></div></div><p class="text-sm font-mono whitespace-pre-wrap mb-2">${E((m.content||'').substring(0,600))}</p><div>${tags}</div></div>`}
+async function delM(id,rl){if(!confirm(L('confirm')))return;await api('DELETE','/api/memory/'+id);toast(L('deleted'));if(rl)nav(CP,rl);else nav(CP)}
+
+// Overview
+async function pgO(){document.getElementById('main').innerHTML=`<div class="p-8"><h2 class="text-xl font-bold font-mono mb-6">${L('overview')}</h2><div class="grid grid-cols-4 gap-4 mb-8" id="st"></div><h3 class="text-sm font-mono text-fg-3 uppercase tracking-wider mb-4">${L('recentMem')}</h3><div id="rc"></div></div>`;
+const d=await api('GET','/api/stats');if(!d)return;
+document.getElementById('st').innerHTML=`<div class="card"><p class="text-xs text-fg-3 uppercase tracking-wider mb-2">${L('memories')}</p><p class="text-3xl font-bold font-mono text-accent">${d.memories||0}</p></div><div class="card"><p class="text-xs text-fg-3 uppercase tracking-wider mb-2">${L('projects')}</p><p class="text-3xl font-bold font-mono text-success">${d.projects||0}</p></div><div class="card"><p class="text-xs text-fg-3 uppercase tracking-wider mb-2">${L('sessions')}</p><p class="text-3xl font-bold font-mono text-warn">${d.sessions||0}</p></div><div class="card"><p class="text-xs text-fg-3 uppercase tracking-wider mb-2">${L('status')}</p><p class="text-3xl font-bold font-mono text-success">●</p></div>`;
+document.getElementById('rc').innerHTML=(d.recent_memories||[]).map(m=>mc(m)).join('')||`<p class="text-fg-3 text-sm font-mono">${L('noMem')}</p>`}
+
+// Memories
+async function pgM(){const d=await api('GET','/api/stats');const ps=d?.project_list||[];
+document.getElementById('main').innerHTML=`<div class="p-8"><div class="flex items-center justify-between mb-6"><h2 class="text-xl font-bold font-mono">${L('memories')}</h2><button class="btn bp text-sm" onclick="showAdd()">${L('newMem')}</button></div><div class="flex gap-3 mb-6"><input id="sq" placeholder="${L('search')}..." class="flex-1 font-mono text-sm"><select id="sp" class="w-44 font-mono text-sm"><option value="">${L('allProj')}</option>${ps.map(p=>`<option>${p}</option>`).join('')}</select><select id="stp" class="w-32 font-mono text-sm"><option value="">${L('allTypes')}</option><option>conversation</option><option>code</option><option>decision</option><option>note</option><option>session</option></select><button class="btn bp text-sm" onclick="doSr()">${L('search')}</button></div><div id="ml"></div></div>`;
+document.getElementById('ml').innerHTML=(d?.recent_memories||[]).map(m=>mc(m)).join('')||`<p class="text-fg-3 text-sm font-mono">${L('noMem')}</p>`}
+async function doSr(){const q=document.getElementById('sq').value;if(!q)return toast(L('enterQuery'),true);const b={query:q,limit:30};const p=document.getElementById('sp').value;const t=document.getElementById('stp').value;if(p)b.project=p;if(t)b.type=t;const d=await api('POST','/api/memory/search',b);if(!d)return;document.getElementById('ml').innerHTML=(d.results||[]).map(m=>mc(m)).join('')||`<p class="text-fg-3 text-sm font-mono">${L('noRes')}</p>`}
+function showAdd(){const o=document.createElement('div');o.className='modal-bg';o.id='modal';o.onclick=e=>{if(e.target===o)o.remove()};o.innerHTML=`<div class="card w-[600px]"><h3 class="text-lg font-mono font-bold mb-4">${L('newMemTitle')}</h3><div class="space-y-4"><div><label class="text-xs text-fg-3 mb-1 block">${L('project')} *</label><input id="m-p" class="font-mono text-sm"></div><div><label class="text-xs text-fg-3 mb-1 block">${L('type')}</label><select id="m-t" class="font-mono text-sm"><option>note</option><option>decision</option><option>code</option><option>conversation</option><option>session</option></select></div><div><label class="text-xs text-fg-3 mb-1 block">${L('content')} *</label><textarea id="m-c" rows="5" class="font-mono text-sm"></textarea></div><div><label class="text-xs text-fg-3 mb-1 block">${L('tags')}</label><input id="m-tg" class="font-mono text-sm"></div></div><div class="flex gap-4 mt-6"><button class="btn bp text-sm" onclick="addM()">${L('save')}</button><button class="btn bg text-sm" onclick="document.getElementById('modal').remove()">${L('cancel')}</button></div></div>`;document.body.appendChild(o)}
+async function addM(){const p=document.getElementById('m-p').value,c=document.getElementById('m-c').value;if(!p||!c)return toast(L('required'),true);const tags=document.getElementById('m-tg').value.split(',').map(t=>t.trim()).filter(Boolean);await api('POST','/api/memory/save',{project:p,type:document.getElementById('m-t').value,content:c,tags});document.getElementById('modal')?.remove();toast(L('saved'));nav(CP)}
+
+// Sessions
+async function pgS(){document.getElementById('main').innerHTML=`<div class="p-8">
+<div class="flex items-center justify-between mb-6">
+  <h2 class="text-xl font-bold font-mono">${L('sessions')}</h2>
+  <div class="flex gap-2">
+    <button class="btn bp text-sm" onclick="showSyncModal()">${LANG==='zh'?'同步本地会话':'Sync Local Sessions'}</button>
+  </div>
+</div>
+<div id="sl"></div></div>`;const d=await api('GET','/api/sessions');if(!(d?.sessions||[]).length){document.getElementById('sl').innerHTML=`<p class="text-fg-3 text-sm font-mono">${L('noSess')}</p>`;return}document.getElementById('sl').innerHTML=`<table><thead><tr><th>${L('project')}</th><th>${L('session')}</th><th>${L('device')}</th><th>${L('branch')}</th><th>${L('time')}</th></tr></thead><tbody>${d.sessions.map(s=>`<tr class="cursor-pointer" onclick="nav('projectDetail','${s.project}')"><td class="font-mono text-sm text-accent">${E(s.project)}</td><td class="font-mono text-sm text-fg-3">${E((s.session_id||'').substring(0,16))}</td><td class="font-mono text-sm">${E(s.device||'—')}</td><td class="font-mono text-sm text-accent">${E(s.branch||'—')}</td><td class="text-sm text-fg-3">${T(s.created_at)}</td></tr>`).join('')}</tbody></table>`}
+
+// Projects
+async function pgP(){document.getElementById('main').innerHTML=`<div class="p-8"><h2 class="text-xl font-bold font-mono mb-6">${L('projects')}</h2><div id="pl" class="grid grid-cols-2 gap-4"></div></div>`;const d=await api('GET','/api/projects');if(!(d?.projects||[]).length){document.getElementById('pl').innerHTML=`<p class="text-fg-3 text-sm font-mono col-span-2">${L('noProj')}</p>`;return}const dts=await Promise.all(d.projects.map(p=>api('GET','/api/project/'+encodeURIComponent(p))));document.getElementById('pl').innerHTML=d.projects.map((p,i)=>{const dt=dts[i]||{};return`<div class="card cursor-pointer hover:border-accent" onclick="nav('projectDetail','${p}')"><div class="flex items-center gap-3 mb-3"><span class="inline-block w-3 h-3 bg-accent"></span><span class="font-mono text-lg font-bold">${E(p)}</span></div><div class="grid grid-cols-3 gap-2 text-xs font-mono"><div><span class="text-fg-3">memories</span><br><span class="text-accent">${dt.memory_count||0}</span></div><div><span class="text-fg-3">sessions</span><br><span class="text-warn">${dt.session_count||0}</span></div><div><span class="text-fg-3">device</span><br><span>${E(dt.last_device||'—')}</span></div></div>${dt.last_branch?`<div class="mt-2 text-xs font-mono text-fg-3">branch: <span class="text-accent">${E(dt.last_branch)}</span></div>`:''}</div>`}).join('')}
+
+// Project Detail
+async function pgPD(p){if(!p)return nav('projects');document.getElementById('main').innerHTML=`<div class="p-8"><div class="flex items-center gap-3 mb-6"><button class="btn bg" style="padding:4px 10px;font-size:12px" onclick="nav('projects')">${L('back')}</button><h2 class="text-xl font-bold font-mono"><span class="text-accent">▪</span> ${E(p)}</h2></div><div id="pds" class="grid grid-cols-4 gap-4 mb-6"></div><div class="flex gap-2 mb-6"><div class="tab active" data-tab="memories" onclick="pdT('memories','${p}')">${L('memories')}</div><div class="tab" data-tab="sessions" onclick="pdT('sessions','${p}')">${L('sessions')}</div></div><div id="pdc"></div></div>`;const dt=await api('GET','/api/project/'+encodeURIComponent(p));if(dt)document.getElementById('pds').innerHTML=`<div class="card"><p class="text-xs text-fg-3 uppercase mb-1">${L('memories')}</p><p class="text-2xl font-bold font-mono text-accent">${dt.memory_count}</p></div><div class="card"><p class="text-xs text-fg-3 uppercase mb-1">${L('sessions')}</p><p class="text-2xl font-bold font-mono text-warn">${dt.session_count}</p></div><div class="card"><p class="text-xs text-fg-3 uppercase mb-1">${L('device')}</p><p class="text-sm font-mono">${E(dt.last_device||'—')}</p></div><div class="card"><p class="text-xs text-fg-3 uppercase mb-1">${L('branch')}</p><p class="text-sm font-mono text-accent">${E(dt.last_branch||'—')}</p></div>`;pdT('memories',p)}
+async function pdT(t,p){document.querySelectorAll('.tab').forEach(n=>n.classList.toggle('active',n.dataset.tab===t));const el=document.getElementById('pdc');if(t==='memories'){const d=await api('GET','/api/project/'+encodeURIComponent(p)+'/memories');el.innerHTML=(d?.memories||[]).map(m=>mc(m,p)).join('')||`<p class="text-fg-3 text-sm font-mono">${L('noMem')}</p>`}else{const d=await api('GET','/api/project/'+encodeURIComponent(p)+'/sessions');if(!(d?.sessions||[]).length){el.innerHTML=`<p class="text-fg-3 text-sm font-mono">${L('noSess')}</p>`;return}el.innerHTML=d.sessions.map(s=>`<div class="mi"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-3"><span class="text-xs font-mono text-fg-3">${E(s.device||'—')}</span><span class="text-xs font-mono text-accent">${E(s.branch||'—')}</span></div><span class="text-xs text-fg-3">${T(s.created_at)}</span></div><details><summary class="text-xs text-fg-3 cursor-pointer hover:text-accent">${L('showContent')}</summary><div class="sc font-mono">${E(s.content||'')}</div></details></div>`).join('')}}
+
+// Account
+async function pgAcc(){document.getElementById('main').innerHTML=`<div class="p-8"><h2 class="text-xl font-bold font-mono mb-6">${L('account')}</h2>
+<div class="card mb-6"><h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">${L('chgUser')}</h3><div class="flex gap-4"><input id="a-u" class="font-mono text-sm flex-1" value="${E(USER?.username||'')}"><button class="btn bp text-sm" onclick="chgUser()">${L('save')}</button></div></div>
+<div class="card mb-6"><h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">${L('chgPwd')}</h3><div class="space-y-3"><div><label class="text-xs text-fg-3 mb-1 block">${L('oldPwd')}</label><input type="password" id="a-op" class="font-mono text-sm"></div><div><label class="text-xs text-fg-3 mb-1 block">${L('newPwd')}</label><input type="password" id="a-np" class="font-mono text-sm"></div><button class="btn bp text-sm" onclick="chgPwd()">${L('updatePwd')}</button></div></div>
+<div class="card mb-6"><h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">${L('apiKeys')}</h3><p class="text-xs text-fg-3 mb-3">${L('apiKeysDesc')}</p><div class="flex gap-4 mb-4"><input id="k-name" placeholder="${L('keyName')}" class="font-mono text-sm flex-1"><button class="btn bp text-sm" onclick="genKey()">${L('genKey')}</button></div><div id="keys-list"></div></div></div>`;loadKeys()}
+
+async function chgUser(){const u=document.getElementById('a-u').value;if(!u)return;const d=await api('POST','/api/auth/username',{username:u});if(d){toast(L('usrUpdated'));USER.username=u;document.getElementById('nav-user').textContent=u+' ('+USER.role+')'}}
+async function chgPwd(){const o=document.getElementById('a-op').value,n=document.getElementById('a-np').value;if(!o||!n)return toast(L('fillBoth'),true);if(n.length<6)return toast(L('min6'),true);const d=await api('POST','/api/auth/password',{old_password:o,new_password:n});if(d){toast(L('pwdUpdated'));document.getElementById('a-op').value='';document.getElementById('a-np').value=''}}
+async function genKey(){const name=document.getElementById('k-name').value||'default';const d=await api('POST','/api/auth/keys',{name});if(d){toast(L('keyGen')+': '+d.key);document.getElementById('k-name').value='';loadKeys()}}
+async function loadKeys(){const d=await api('GET','/api/auth/keys');if(!d)return;const el=document.getElementById('keys-list');if(!(d.keys||[]).length){el.innerHTML=`<p class="text-fg-3 text-sm font-mono">${L('noRes')}</p>`;return}el.innerHTML=`<table><thead><tr><th>${L('name')}</th><th>${L('key')}</th><th>${L('lastUsed')}</th><th>${L('created')}</th><th></th></tr></thead><tbody>${(d.keys||[]).map(k=>`<tr><td class="font-mono text-sm">${E(k.name)}</td><td class="font-mono text-sm text-accent">${E(k.key)}</td><td class="text-sm text-fg-3">${k.last_used?T(k.last_used):'never'}</td><td class="text-sm text-fg-3">${T(k.created_at)}</td><td><button class="bd btn" style="padding:4px 10px;font-size:12px" onclick="delKey('${k.id}')">delete</button></td></tr>`).join('')}</tbody></table>`}
+async function delKey(id){if(!confirm(L('confirm')))return;await api('DELETE','/api/auth/keys/'+id);toast(L('deleted'));loadKeys()}
+
+// GitHub
+async function pgGH(){
+  document.getElementById('main').innerHTML=`<div class="p-8">
+    <h2 class="text-xl font-bold font-mono mb-6">GitHub</h2>
+    <div class="card mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider">${LANG==='zh'?'仓库列表':'Repositories'}</h3>
+        <button class="btn bg" style="padding:4px 10px;font-size:12px" onclick="pgGH()">${LANG==='zh'?'刷新':'Refresh'}</button>
+      </div>
+      <div id="gh-repos"></div>
+    </div>
+    <div class="card mb-6">
+      <h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">Webhook</h3>
+      <p class="text-sm text-fg-2 mb-3">${LANG==='zh'
+        ?'在 GitHub 仓库 Settings > Webhooks 中添加以下 URL，即可自动记录 push 和 PR 事件。'
+        :'Add this URL in GitHub repo Settings > Webhooks to auto-record push and PR events.'}</p>
+      <div class="bg-bg-1 p-4 border border-border mb-3">
+        <p class="text-xs text-fg-3 mb-1">Payload URL:</p>
+        <pre class="text-sm font-mono text-accent">${location.origin}/api/github/webhook</pre>
+      </div>
+      <div class="bg-bg-1 p-4 border border-border mb-3">
+        <p class="text-xs text-fg-3 mb-1">Content type:</p>
+        <pre class="text-sm font-mono">application/json</pre>
+      </div>
+      <div class="bg-bg-1 p-4 border border-border">
+        <p class="text-xs text-fg-3 mb-1">${LANG==='zh'?'触发事件':'Events'}:</p>
+        <pre class="text-sm font-mono">Pushes, Pull requests</pre>
+      </div>
+    </div>
+    <div id="gh-commits" class="hidden"></div>
+  </div>`;
+  // 加载仓库
+  const d=await api('GET','/api/github/repos');
+  if(!d||!d.repos){
+    document.getElementById('gh-repos').innerHTML=`<p class="text-fg-3 text-sm font-mono">${LANG==='zh'?'GitHub Token 未配置或无效，请在 Settings 中配置。':'GitHub Token not configured. Set it in Settings.'}</p>`;
+    return;
+  }
+  document.getElementById('gh-repos').innerHTML=`<table>
+    <thead><tr><th>${LANG==='zh'?'仓库':'Repo'}</th><th>${LANG==='zh'?'语言':'Lang'}</th><th>${LANG==='zh'?'分支':'Branch'}</th><th>${LANG==='zh'?'更新':'Updated'}</th><th></th></tr></thead>
+    <tbody>${d.repos.map(r=>`<tr>
+      <td><span class="font-mono text-sm text-accent">${E(r.full_name)}</span>${r.private?' <span class="tag">private</span>':''}${r.description?'<br><span class="text-xs text-fg-3">'+E(r.description.substring(0,60))+'</span>':''}</td>
+      <td class="font-mono text-sm">${E(r.language||'—')}</td>
+      <td class="font-mono text-sm">${E(r.default_branch)}</td>
+      <td class="text-sm text-fg-3">${T(r.updated_at)}</td>
+      <td><button class="btn bg" style="padding:4px 10px;font-size:11px" onclick="ghCommits('${r.full_name}')">${LANG==='zh'?'提交':'Commits'}</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+async function ghCommits(fullName){
+  const el=document.getElementById('gh-commits');
+  el.classList.remove('hidden');
+  el.innerHTML=`<div class="card"><h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">${E(fullName)} — ${LANG==='zh'?'最近提交':'Recent Commits'}</h3><div id="gh-cl"><p class="text-fg-3 text-sm font-mono">Loading...</p></div></div>`;
+  el.scrollIntoView({behavior:'smooth'});
+
+  const [owner,repo]=fullName.split('/');
+  const d=await api('GET','/api/github/repos/'+owner+'/'+repo+'/commits');
+  if(!d||!d.commits){
+    document.getElementById('gh-cl').innerHTML='<p class="text-danger text-sm font-mono">Failed to load commits.</p>';
+    return;
+  }
+  document.getElementById('gh-cl').innerHTML=`<table>
+    <thead><tr><th>SHA</th><th>${LANG==='zh'?'消息':'Message'}</th><th>${LANG==='zh'?'作者':'Author'}</th><th>${LANG==='zh'?'时间':'Time'}</th></tr></thead>
+    <tbody>${d.commits.map(c=>`<tr>
+      <td class="font-mono text-sm text-accent">${E(c.sha)}</td>
+      <td class="text-sm">${E(c.message.split('\n')[0].substring(0,80))}</td>
+      <td class="font-mono text-sm text-fg-3">${E(c.author)}</td>
+      <td class="text-sm text-fg-3">${T(c.date)}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+// Settings - 多 Provider 管理
+// 预定义提供商模板
+const PRESETS={
+  openai:{name:'openai',url:'https://api.openai.com',embed_model:'text-embedding-3-small',llm_model:'gpt-4o-mini',embedding_dim:1536,embed:true,llm:true,note:'Best quality / 质量最好'},
+  qwen:{name:'qwen',url:'https://dashscope.aliyuncs.com',embed_model:'text-embedding-v3',llm_model:'qwen-plus',embedding_dim:1024,embed:true,llm:true,note:'Good for Chinese, cheap / 中文好，便宜'},
+  deepseek:{name:'deepseek',url:'https://api.deepseek.com',embed_model:'',llm_model:'deepseek-chat',embedding_dim:0,embed:false,llm:true,note:'<span class="text-danger font-bold">-</span> No Embedding / 不支持 Embedding，仅 LLM'},
+  ollama:{name:'ollama',url:'http://localhost:11434',embed_model:'nomic-embed-text',llm_model:'llama3',embedding_dim:768,embed:true,llm:true,note:'Local / 本地部署'},
+};
+let cfgProviders=[],cfgActiveEmbed='',cfgActiveLLM='';
+
+async function pgCfg(){
+  const d=await api('GET','/api/settings');
+  cfgProviders=(d?.providers||[]).map(p=>({...p}));
+  cfgActiveEmbed=d?.active_embedding||'';
+  cfgActiveLLM=d?.active_llm||'';
+
+  renderCfg(d);
+}
+
+function renderCfg(d){
+  const embedOpts=cfgProviders.filter(p=>{const pr=PRESETS[p.name];return !pr||pr.embed}).map(p=>`<option value="${p.name}" ${p.name===cfgActiveEmbed?'selected':''}>${p.name}</option>`).join('');
+  const llmOpts=cfgProviders.filter(p=>{const pr=PRESETS[p.name];return !pr||pr.llm}).map(p=>`<option value="${p.name}" ${p.name===cfgActiveLLM?'selected':''}>${p.name}</option>`).join('');
+
+  document.getElementById('main').innerHTML=`<div class="p-8"><h2 class="text-xl font-bold font-mono mb-6">${L('settings')}</h2>
+
+<div class="card mb-6">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider">AI Providers</h3>
+    <div class="flex gap-2">
+      ${Object.keys(PRESETS).map(k=>`<button class="btn bg" style="padding:4px 10px;font-size:11px" onclick="addPreset('${k}')">+ ${k}</button>`).join('')}
+      <button class="btn bg" style="padding:4px 10px;font-size:11px" onclick="addPreset('custom')">+ Custom</button>
+    </div>
+  </div>
+
+  ${cfgProviders.length===0?`<p class="text-fg-3 text-sm font-mono">No providers configured. Click a button above to add one.</p>`:''}
+
+  ${cfgProviders.map((p,i)=>{
+    const pr=PRESETS[p.name];
+    const note=pr?.note||'OpenAI compatible / OpenAI 兼容格式';
+    const noEmbed=pr&&!pr.embed;
+    return`<div class="bg-bg-1 border border-border p-4 mb-3">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <span class="font-mono font-bold text-accent">${E(p.name)}</span>
+          <span class="text-xs text-fg-3">${note}</span>
+          ${noEmbed?'<span class="tag text-danger" style="border-color:#f38ba8"><span class="text-danger font-bold">-</span> No Embedding</span>':''}
+        </div>
+        <button class="bd btn" style="padding:4px 10px;font-size:11px" onclick="rmProvider(${i})">×</button>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs text-fg-3 mb-1 block">URL</label><input class="font-mono text-sm" value="${E(p.url)}" onchange="cfgProviders[${i}].url=this.value"></div>
+        <div><label class="text-xs text-fg-3 mb-1 block">API Key</label><input type="password" class="font-mono text-sm" value="${E(p.key)}" onchange="cfgProviders[${i}].key=this.value"></div>
+        <div><label class="text-xs text-fg-3 mb-1 block">Embedding Model ${noEmbed?'<span class="text-danger">(N/A)</span>':''}</label><input class="font-mono text-sm" value="${E(p.embed_model)}" ${noEmbed?'disabled style="opacity:0.4"':''} onchange="cfgProviders[${i}].embed_model=this.value"></div>
+        <div><label class="text-xs text-fg-3 mb-1 block">LLM Model</label><input class="font-mono text-sm" value="${E(p.llm_model)}" onchange="cfgProviders[${i}].llm_model=this.value"></div>
+        <div><label class="text-xs text-fg-3 mb-1 block">Embedding Dim ${noEmbed?'<span class="text-danger">(N/A)</span>':''}</label><input type="number" class="font-mono text-sm" value="${p.embedding_dim||''}" ${noEmbed?'disabled style="opacity:0.4"':''} onchange="cfgProviders[${i}].embedding_dim=parseInt(this.value)||0"></div>
+      </div>
+    </div>`}).join('')}
+</div>
+
+<div class="card mb-6">
+  <h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">Active Provider</h3>
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <label class="text-xs text-fg-3 mb-1 block">Embedding Provider</label>
+      <select class="font-mono text-sm" onchange="cfgActiveEmbed=this.value">${embedOpts||'<option value="">-- none --</option>'}</select>
+      <p class="text-xs text-fg-3 mt-1">${LANG==='zh'?'用于语义搜索的向量嵌入':'For semantic search vector embeddings'}</p>
+    </div>
+    <div>
+      <label class="text-xs text-fg-3 mb-1 block">LLM Provider</label>
+      <select class="font-mono text-sm" onchange="cfgActiveLLM=this.value">${llmOpts||'<option value="">-- none --</option>'}</select>
+      <p class="text-xs text-fg-3 mt-1">${LANG==='zh'?'用于会话压缩':'For session compression'}</p>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-6">
+  <h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">${L('github')}</h3>
+  <div class="grid grid-cols-2 gap-4">
+    <div><label class="text-xs text-fg-3 mb-1 block">${L('token')}</label><input type="password" id="c-gt" class="font-mono text-sm" value="${E(d?.github_token||'')}"></div>
+    <div><label class="text-xs text-fg-3 mb-1 block">${L('owner')}</label><input id="c-go" class="font-mono text-sm" value="${E(d?.github_owner||'')}"></div>
+    <div class="col-span-2"><label class="text-xs text-fg-3 mb-1 block">${L('webhookSecret')}</label><input id="c-gw" class="font-mono text-sm" value="${E(d?.github_webhook_secret||'')}"></div>
+  </div>
+</div>
+
+<div class="card mb-6">
+  <h3 class="text-xs font-mono text-fg-3 uppercase tracking-wider mb-4">${LANG==='zh'?'提供商兼容性':'Provider Compatibility'}</h3>
+  <table>
+    <thead><tr><th>${LANG==='zh'?'提供商':'Provider'}</th><th>Embedding</th><th>LLM</th><th>${LANG==='zh'?'说明':'Note'}</th></tr></thead>
+    <tbody>
+      <tr><td class="font-mono text-sm">OpenAI</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> text-embedding-3-small/large</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> gpt-4o-mini</td><td class="text-sm text-fg-3">${LANG==='zh'?'质量最好':'Best quality'}</td></tr>
+      <tr><td class="font-mono text-sm">Qwen</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> text-embedding-v3</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> qwen-plus</td><td class="text-sm text-fg-3">${LANG==='zh'?'中文好，便宜':'Good Chinese, cheap'}</td></tr>
+      <tr><td class="font-mono text-sm">DeepSeek</td><td class="text-danger text-sm"><span class="text-danger font-bold">-</span> ${LANG==='zh'?'不支持':'Not supported'}</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> deepseek-chat</td><td class="text-sm text-fg-3">${LANG==='zh'?'只能做压缩':'LLM only'}</td></tr>
+      <tr><td class="font-mono text-sm">Ollama</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> nomic-embed-text</td><td class="text-success text-sm"><span class="text-success font-bold">+</span> ${LANG==='zh'?'本地模型':'Local models'}</td><td class="text-sm text-fg-3">${LANG==='zh'?'本地部署':'Self-hosted'}</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="flex gap-4"><button class="btn bp text-sm" onclick="saveCfg()">${L('save')}</button><button class="btn bg text-sm" onclick="pgCfg()">${L('reset')}</button></div></div>`}
+
+function addPreset(name){
+  if(name==='custom'){
+    const n=prompt(LANG==='zh'?'输入提供商名称：':'Enter provider name:')||'';
+    if(!n)return;
+    cfgProviders.push({name:n,url:'',key:'',embed_model:'',llm_model:'',embedding_dim:1024});
+  } else {
+    if(cfgProviders.find(p=>p.name===name))return toast(name+' already exists',true);
+    const pr=PRESETS[name];
+    cfgProviders.push({name:pr.name,url:pr.url,key:'',embed_model:pr.embed_model,llm_model:pr.llm_model,embedding_dim:pr.embedding_dim});
+  }
+  if(!cfgActiveEmbed){const ep=cfgProviders.find(p=>{const pr=PRESETS[p.name];return !pr||pr.embed});if(ep)cfgActiveEmbed=ep.name}
+  if(!cfgActiveLLM&&cfgProviders.length)cfgActiveLLM=cfgProviders[0].name;
+  renderCfg({github_token:document.getElementById('c-gt')?.value,github_owner:document.getElementById('c-go')?.value,github_webhook_secret:document.getElementById('c-gw')?.value});
+}
+
+function rmProvider(i){
+  const name=cfgProviders[i].name;
+  cfgProviders.splice(i,1);
+  if(cfgActiveEmbed===name)cfgActiveEmbed=cfgProviders[0]?.name||'';
+  if(cfgActiveLLM===name)cfgActiveLLM=cfgProviders[0]?.name||'';
+  renderCfg({github_token:document.getElementById('c-gt')?.value,github_owner:document.getElementById('c-go')?.value,github_webhook_secret:document.getElementById('c-gw')?.value});
+}
+
+async function saveCfg(){
+  const b={
+    providers:cfgProviders,
+    active_embedding:cfgActiveEmbed,
+    active_llm:cfgActiveLLM,
+    github_token:document.getElementById('c-gt')?.value||'',
+    github_owner:document.getElementById('c-go')?.value||'',
+    github_webhook_secret:document.getElementById('c-gw')?.value||''
+  };
+  const r=await api('POST','/api/settings',b);
+  if(r)toast(L('settingsSaved'))
+}
+
+// API Docs
+function pgDocs(){document.getElementById('main').innerHTML=`<div class="p-8 max-w-4xl">
+<h2 class="text-xl font-bold font-mono mb-6">${L('docs')}</h2>
+
+<div class="card mb-6">
+<h3 class="text-lg font-mono font-bold mb-4">${L('quickStart')}</h3>
+<p class="text-sm text-fg-2 mb-4">${L('quickStartDesc')}</p>
+<div class="bg-bg-1 p-4 border border-border mb-4">
+<p class="text-xs text-fg-3 mb-2">${L('mcpEndpoint')}</p>
+<pre class="text-sm font-mono text-accent">${location.origin}/mcp</pre>
+</div>
+</div>
+
+<div class="card mb-6">
+<h3 class="text-lg font-mono font-bold mb-3">1. Claude Code</h3>
+<p class="text-sm text-fg-2 mb-3">Run this command in terminal:</p>
+<pre class="code font-mono">claude mcp add-json recalla '{"type":"http","url":"${location.origin}/mcp"}' --scope user</pre>
+<p class="text-sm text-fg-2 mt-3 mb-2">Or add to <code class="text-accent">~/.claude.json</code>:</p>
+<pre class="code font-mono">{
+  "mcpServers": {
+    "recalla": {
+      "type": "http",
+      "url": "${location.origin}/mcp"
+    }
+  }
+}</pre>
+</div>
+
+<div class="card mb-6">
+<h3 class="text-lg font-mono font-bold mb-3">2. Cursor</h3>
+<p class="text-sm text-fg-2 mb-3">Settings → MCP → Add Server:</p>
+<pre class="code font-mono">Name:  recalla
+URL:   ${location.origin}/mcp
+Type:  streamableHttp</pre>
+</div>
+
+<div class="card mb-6">
+<h3 class="text-lg font-mono font-bold mb-3">3. Codex (OpenAI CLI)</h3>
+<p class="text-sm text-fg-2 mb-3">Edit <code class="text-accent">~/.codex/config.toml</code>:</p>
+<pre class="code font-mono">[mcp.recalla]
+type = "url"
+url  = "${location.origin}/mcp"</pre>
+</div>
+
+<div class="card mb-6">
+<h3 class="text-lg font-mono font-bold mb-3">4. VS Code</h3>
+<p class="text-sm text-fg-2 mb-3">Edit <code class="text-accent">.vscode/settings.json</code>:</p>
+<pre class="code font-mono">{
+  "mcp": {
+    "servers": {
+      "recalla": {
+        "url": "${location.origin}/mcp",
+        "type": "streamableHttp"
+      }
+    }
+  }
+}</pre>
+</div>
+
+<div class="card mb-6">
+<h3 class="text-lg font-mono font-bold mb-3">5. ${L('autoRules')}</h3>
+<p class="text-sm text-fg-2 mb-3">${L('autoRulesDesc')} <code class="text-accent">CLAUDE.md</code> / <code class="text-accent">AGENTS.md</code> / <code class="text-accent">.cursorrules</code>:</p>
+<pre class="code font-mono">## Recalla Rules
+- On conversation start: call context_restore
+- On important decisions: call memory_save
+- On conversation end: call session_sync
+- Before new tasks: call memory_search</pre>
+</div>
+
+<div class="card mb-6">
+<h3 class="text-lg font-mono font-bold mb-3">${L('mcpTools')}</h3>
+<table><thead><tr><th>${L('tool')}</th><th>${L('desc')}</th></tr></thead><tbody>
+<tr><td class="font-mono text-accent text-sm">memory_save</td><td class="text-sm">Save a memory (code, decision, note...)</td></tr>
+<tr><td class="font-mono text-accent text-sm">memory_search</td><td class="text-sm">Semantic search across memories</td></tr>
+<tr><td class="font-mono text-accent text-sm">context_restore</td><td class="text-sm">Restore project context (device, branch, recent)</td></tr>
+<tr><td class="font-mono text-accent text-sm">session_sync</td><td class="text-sm">Sync current session to cloud</td></tr>
+<tr><td class="font-mono text-accent text-sm">session_compress</td><td class="text-sm">AI-compress long sessions</td></tr>
+<tr><td class="font-mono text-accent text-sm">project_list</td><td class="text-sm">List all projects</td></tr>
+</tbody></table>
+</div>
+
+<div class="card mb-6">
+<h3 class="text-lg font-mono font-bold mb-3">${L('restApi')}</h3>
+<p class="text-sm text-fg-2 mb-3">${L('restApiDesc')}</p>
+<table><thead><tr><th>${L('method')}</th><th>${L('endpoint')}</th><th>${L('desc')}</th></tr></thead><tbody>
+<tr><td class="font-mono text-sm">POST</td><td class="font-mono text-accent text-sm">/api/memory/save</td><td class="text-sm">Save memory</td></tr>
+<tr><td class="font-mono text-sm">POST</td><td class="font-mono text-accent text-sm">/api/memory/search</td><td class="text-sm">Search memories</td></tr>
+<tr><td class="font-mono text-sm">DELETE</td><td class="font-mono text-accent text-sm">/api/memory/{id}</td><td class="text-sm">Delete memory</td></tr>
+<tr><td class="font-mono text-sm">POST</td><td class="font-mono text-accent text-sm">/api/context/restore</td><td class="text-sm">Restore context</td></tr>
+<tr><td class="font-mono text-sm">POST</td><td class="font-mono text-accent text-sm">/api/session/sync</td><td class="text-sm">Sync session</td></tr>
+<tr><td class="font-mono text-sm">POST</td><td class="font-mono text-accent text-sm">/api/session/compress</td><td class="text-sm">Compress session</td></tr>
+<tr><td class="font-mono text-sm">GET</td><td class="font-mono text-accent text-sm">/api/projects</td><td class="text-sm">List projects</td></tr>
+<tr><td class="font-mono text-sm">GET</td><td class="font-mono text-accent text-sm">/api/project/{name}</td><td class="text-sm">Project detail</td></tr>
+</tbody></table>
+</div>
+
+<div class="card mb-6">
+<h3 class="text-lg font-mono font-bold mb-3">${L('example')}</h3>
+<pre class="code font-mono">curl -X POST ${location.origin}/api/memory/save \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "project": "my-project",
+    "type": "decision",
+    "content": "Chose Qdrant for vector search",
+    "tags": ["architecture"]
+  }'</pre>
+</div>
+
+<div class="card">
+<h3 class="text-lg font-mono font-bold mb-3">${L('selfDeploy')}</h3>
+<pre class="code font-mono">git clone https://github.com/gentpan/recalla
+cd recalla && docker compose up -d</pre>
+<p class="text-sm text-fg-2 mt-3">${L('defaultLogin')} <code class="text-accent">admin / admin123</code></p>
+</div>
+</div>`}
+// 同步本地会话弹窗
+function showSyncModal(){
+  const o=document.createElement('div');o.className='modal-bg';o.id='modal';o.onclick=e=>{if(e.target===o)o.remove()};
+  o.innerHTML=`<div class="card w-[650px]">
+    <h3 class="text-lg font-mono font-bold mb-4">${LANG==='zh'?'同步本地 Claude 会话':'Sync Local Claude Sessions'}</h3>
+    <p class="text-sm text-fg-2 mb-4">${LANG==='zh'
+      ?'选择你本地的 Claude 会话文件（.jsonl），支持多选。文件通常位于 ~/.claude/projects/ 目录下。'
+      :'Select local Claude session files (.jsonl). Multi-select supported. Usually in ~/.claude/projects/.'}</p>
+    <div class="mb-4">
+      <label class="text-xs text-fg-3 mb-1 block">${LANG==='zh'?'设备名称':'Device Name'}</label>
+      <input id="sync-device" class="font-mono text-sm" placeholder="Macbook / Mac Studio / Ubuntu">
+    </div>
+    <div class="border border-border border-dashed p-8 text-center mb-4 cursor-pointer hover:border-accent" onclick="document.getElementById('sync-files').click()">
+      <p class="text-fg-3 text-sm font-mono">${LANG==='zh'?'点击选择 .jsonl 文件（支持多选）':'Click to select .jsonl files (multi-select)'}</p>
+      <p class="text-xs text-fg-3 mt-2" id="sync-status"></p>
+      <input type="file" id="sync-files" multiple accept=".jsonl" style="display:none" onchange="onSyncFiles(this)">
+    </div>
+    <div class="flex gap-4">
+      <button class="btn bp text-sm" onclick="doSync()" id="sync-btn" disabled>${LANG==='zh'?'开始同步':'Start Sync'}</button>
+      <button class="btn bg text-sm" onclick="document.getElementById('modal').remove()">${L('cancel')}</button>
+    </div>
+    <div id="sync-log" class="mt-4 max-h-48 overflow-y-auto"></div>
+  </div>`;
+  document.body.appendChild(o);
+}
+let syncParsed=[];
+function onSyncFiles(input){
+  const files=Array.from(input.files);
+  document.getElementById('sync-status').textContent=files.length+(LANG==='zh'?' 个文件已选择':' file(s) selected');
+  document.getElementById('sync-btn').disabled=false;
+  syncParsed=[];
+  let loaded=0;
+  files.forEach(f=>{
+    const reader=new FileReader();
+    reader.onload=()=>{
+      const lines=reader.result.split('\n').filter(Boolean);
+      const msgs=[];let project=f.name.replace('.jsonl','');
+      lines.forEach(line=>{try{const e=JSON.parse(line);
+        if(e.cwd){const p=e.cwd.split('/');project=p[p.length-1]||project}
+        if(e.type==='queue-operation'&&e.operation==='enqueue'){const c=e.content;if(typeof c==='string'&&c.length>5)msgs.push(c.substring(0,500))}
+      }catch{}});
+      if(msgs.length>0){
+        let summary=msgs.slice(0,10).join('\n---\n');
+        if(msgs.length>15){summary+='\n... ('+msgs.length+' total) ...\n'+msgs.slice(-5).join('\n---\n')}
+        if(summary.length>5000)summary=summary.substring(0,5000)+'\n...(truncated)';
+        syncParsed.push({project:project.replace(/-Users-pan-projects-/g,'').replace(/-Users-pan-/g,'').split('--claude-worktrees-')[0],session_id:f.name.replace('.jsonl',''),content:summary,messages:msgs.length});
+      }
+      loaded++;
+      if(loaded===files.length)document.getElementById('sync-status').textContent=syncParsed.length+'/'+files.length+(LANG==='zh'?' 个有效会话':' valid session(s)')+' ('+syncParsed.reduce((a,s)=>a+s.messages,0)+(LANG==='zh'?' 条消息':' messages')+')';
+    };reader.readAsText(f);
+  });
+}
+async function doSync(){
+  if(!syncParsed.length)return;
+  const device=document.getElementById('sync-device').value||'Unknown';
+  const log=document.getElementById('sync-log');
+  const btn=document.getElementById('sync-btn');
+  btn.disabled=true;btn.textContent=LANG==='zh'?'同步中...':'Syncing...';
+  const sessions=syncParsed.map(s=>({...s,device,branch:''}));
+  const d=await api('POST','/api/sessions/import',{sessions});
+  if(d){
+    log.innerHTML='<p class="text-success text-sm font-mono">'+(LANG==='zh'?'同步完成：'+d.imported+'/'+d.total+' 个会话':'Done: '+d.imported+'/'+d.total+' sessions imported')+'</p>';
+    btn.textContent=LANG==='zh'?'完成':'Done';
+    setTimeout(()=>{document.getElementById('modal')?.remove();nav('sessions')},2000);
+  }else{btn.disabled=false;btn.textContent=LANG==='zh'?'重试':'Retry'}
+}
+</script>
+</body>
+</html>
