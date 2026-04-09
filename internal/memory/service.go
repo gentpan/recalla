@@ -645,6 +645,242 @@ func (s *Service) ListSharedMemories(ctx context.Context, teamID string, limit i
 	return memories, nil
 }
 
+// ========== 团队增强 ==========
+
+// TeamInvite 团队邀请
+type TeamInvite struct {
+	ID        string    `json:"id"`
+	TeamID    string    `json:"team_id"`
+	TeamName  string    `json:"team_name,omitempty"`
+	InvitedBy string    `json:"invited_by"`
+	Username  string    `json:"username"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// TeamActivity 团队活动
+type TeamActivity struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	Username  string    `json:"username,omitempty"`
+	Action    string    `json:"action"`
+	Detail    string    `json:"detail"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// InviteMember 通过用户名邀请成员
+func (s *Service) InviteMember(ctx context.Context, teamID, invitedBy, username string) (*TeamInvite, error) {
+	// 检查用户是否存在
+	var targetID string
+	err := s.db.Pool.QueryRow(ctx, `SELECT id FROM users WHERE username=$1`, username).Scan(&targetID)
+	if err != nil {
+		return nil, fmt.Errorf("用户 %s 不存在", username)
+	}
+
+	// 检查是否已是成员
+	var count int
+	s.db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM team_members WHERE team_id=$1 AND user_id=$2`, teamID, targetID).Scan(&count)
+	if count > 0 {
+		return nil, fmt.Errorf("用户 %s 已是团队成员", username)
+	}
+
+	id := uuid.New().String()
+	now := time.Now()
+	_, err = s.db.Pool.Exec(ctx, `
+		INSERT INTO team_invites (id, team_id, invited_by, username, status, created_at)
+		VALUES ($1,$2,$3,$4,'pending',$5)
+	`, id, teamID, invitedBy, username, now)
+	if err != nil { return nil, fmt.Errorf("邀请失败: %w", err) }
+
+	// 记录活动
+	s.logTeamActivity(ctx, teamID, invitedBy, "member_invited", "Invited "+username)
+
+	return &TeamInvite{ID: id, TeamID: teamID, InvitedBy: invitedBy, Username: username, Status: "pending", CreatedAt: now}, nil
+}
+
+// AcceptInvite 接受邀请
+func (s *Service) AcceptInvite(ctx context.Context, inviteID, userID string) error {
+	var invite TeamInvite
+	err := s.db.Pool.QueryRow(ctx, `SELECT team_id, username FROM team_invites WHERE id=$1 AND status='pending'`, inviteID).Scan(&invite.TeamID, &invite.Username)
+	if err != nil { return fmt.Errorf("邀请不存在或已处理") }
+
+	// 验证是本人
+	var username string
+	s.db.Pool.QueryRow(ctx, `SELECT username FROM users WHERE id=$1`, userID).Scan(&username)
+	if username != invite.Username { return fmt.Errorf("无权处理此邀请") }
+
+	// 加入团队
+	now := time.Now()
+	s.db.Pool.Exec(ctx, `INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES ($1,$2,'member',$3) ON CONFLICT DO NOTHING`, invite.TeamID, userID, now)
+	s.db.Pool.Exec(ctx, `UPDATE team_invites SET status='accepted' WHERE id=$1`, inviteID)
+	s.logTeamActivity(ctx, invite.TeamID, userID, "member_joined", username+" joined")
+	return nil
+}
+
+// ListPendingInvites 列出待处理邀请
+func (s *Service) ListPendingInvites(ctx context.Context, username string) ([]TeamInvite, error) {
+	rows, err := s.db.Pool.Query(ctx, `
+		SELECT ti.id, ti.team_id, t.name, ti.invited_by, ti.username, ti.status, ti.created_at
+		FROM team_invites ti JOIN teams t ON ti.team_id = t.id
+		WHERE ti.username=$1 AND ti.status='pending' ORDER BY ti.created_at DESC
+	`, username)
+	if err != nil { return nil, err }
+	defer rows.Close()
+
+	var invites []TeamInvite
+	for rows.Next() {
+		var i TeamInvite
+		if err := rows.Scan(&i.ID, &i.TeamID, &i.TeamName, &i.InvitedBy, &i.Username, &i.Status, &i.CreatedAt); err == nil {
+			invites = append(invites, i)
+		}
+	}
+	return invites, nil
+}
+
+// AddTeamProject 关联项目到团队
+func (s *Service) AddTeamProject(ctx context.Context, teamID, project string) error {
+	_, err := s.db.Pool.Exec(ctx, `INSERT INTO team_projects (team_id, project, added_at) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, teamID, project, time.Now())
+	return err
+}
+
+// ListTeamProjects 列出团队项目
+func (s *Service) ListTeamProjects(ctx context.Context, teamID string) ([]string, error) {
+	rows, err := s.db.Pool.Query(ctx, `SELECT project FROM team_projects WHERE team_id=$1 ORDER BY project`, teamID)
+	if err != nil { return nil, err }
+	defer rows.Close()
+	var projects []string
+	for rows.Next() {
+		var p string
+		if rows.Scan(&p) == nil { projects = append(projects, p) }
+	}
+	return projects, nil
+}
+
+// SearchTeamMemories 搜索团队共享记忆
+func (s *Service) SearchTeamMemories(ctx context.Context, userID, teamID, query string, limit int) ([]Memory, error) {
+	if limit <= 0 { limit = 10 }
+
+	// 获取团队所有成员 ID
+	rows, err := s.db.Pool.Query(ctx, `SELECT user_id FROM team_members WHERE team_id=$1`, teamID)
+	if err != nil { return nil, err }
+	defer rows.Close()
+
+	var memberIDs []string
+	for rows.Next() {
+		var id string
+		if rows.Scan(&id) == nil { memberIDs = append(memberIDs, id) }
+	}
+	if len(memberIDs) == 0 { return nil, nil }
+
+	// 获取团队关联项目
+	teamProjects, _ := s.ListTeamProjects(ctx, teamID)
+
+	// 生成查询向量
+	vec, err := s.embedder.Embed(ctx, query)
+	if err != nil { return nil, err }
+
+	// 搜索所有成员的记忆
+	var must []map[string]any
+	// user_id in memberIDs
+	shouldUser := make([]map[string]any, len(memberIDs))
+	for i, id := range memberIDs {
+		shouldUser[i] = map[string]any{"key": "user_id", "match": map[string]any{"value": id}}
+	}
+	must = append(must, map[string]any{"should": shouldUser})
+
+	// 如果有团队项目，限制到这些项目
+	if len(teamProjects) > 0 {
+		shouldProj := make([]map[string]any, len(teamProjects))
+		for i, p := range teamProjects {
+			shouldProj[i] = map[string]any{"key": "project", "match": map[string]any{"value": p}}
+		}
+		must = append(must, map[string]any{"should": shouldProj})
+	}
+
+	filter := map[string]any{"must": must}
+	results, err := s.qdrant.Search(ctx, vec, limit, filter)
+	if err != nil { return nil, err }
+
+	if len(results) == 0 { return []Memory{}, nil }
+
+	// 从 Postgres 获取完整记忆
+	var ids []string
+	scoreMap := make(map[string]float64)
+	for _, r := range results {
+		ids = append(ids, r.ID)
+		scoreMap[r.ID] = r.Score
+	}
+
+	placeholders := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	q := fmt.Sprintf(`SELECT id, user_id, project, type, content, summary, tags, metadata, importance, created_at, updated_at
+		FROM memories WHERE id IN (%s) ORDER BY created_at DESC`, strings.Join(placeholders, ","))
+
+	rows2, err := s.db.Pool.Query(ctx, q, args...)
+	if err != nil { return nil, err }
+	defer rows2.Close()
+
+	var memories []Memory
+	for rows2.Next() {
+		var m Memory
+		var summary *string
+		if err := rows2.Scan(&m.ID, &m.UserID, &m.Project, &m.Type, &m.Content, &summary, &m.Tags, &m.Metadata, &m.Importance, &m.CreatedAt, &m.UpdatedAt); err == nil {
+			if summary != nil { m.Summary = *summary }
+			m.Score = scoreMap[m.ID]
+			memories = append(memories, m)
+		}
+	}
+	return memories, nil
+}
+
+// GetTeamDetail 获取团队详情
+func (s *Service) GetTeamDetail(ctx context.Context, teamID string) (map[string]any, error) {
+	var team Team
+	err := s.db.Pool.QueryRow(ctx, `SELECT id, name, owner_id, created_at FROM teams WHERE id=$1`, teamID).Scan(&team.ID, &team.Name, &team.OwnerID, &team.CreatedAt)
+	if err != nil { return nil, fmt.Errorf("团队不存在") }
+
+	members, _ := s.ListTeamMembers(ctx, teamID)
+	projects, _ := s.ListTeamProjects(ctx, teamID)
+
+	var sharedCount int
+	s.db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM shared_memories WHERE team_id=$1`, teamID).Scan(&sharedCount)
+
+	// 最近活动
+	actRows, _ := s.db.Pool.Query(ctx, `
+		SELECT ta.id, ta.user_id, COALESCE(u.username,''), ta.action, COALESCE(ta.detail,''), ta.created_at
+		FROM team_activity ta LEFT JOIN users u ON ta.user_id::uuid = u.id
+		WHERE ta.team_id=$1 ORDER BY ta.created_at DESC LIMIT 20
+	`, teamID)
+	var activities []TeamActivity
+	if actRows != nil {
+		defer actRows.Close()
+		for actRows.Next() {
+			var a TeamActivity
+			if actRows.Scan(&a.ID, &a.UserID, &a.Username, &a.Action, &a.Detail, &a.CreatedAt) == nil {
+				activities = append(activities, a)
+			}
+		}
+	}
+
+	return map[string]any{
+		"team":          team,
+		"members":       members,
+		"projects":      projects,
+		"shared_count":  sharedCount,
+		"activities":    activities,
+	}, nil
+}
+
+// logTeamActivity 记录团队活动
+func (s *Service) logTeamActivity(ctx context.Context, teamID, userID, action, detail string) {
+	s.db.Pool.Exec(ctx, `INSERT INTO team_activity (team_id, user_id, action, detail, created_at) VALUES ($1,$2,$3,$4,$5)`,
+		teamID, userID, action, detail, time.Now())
+}
+
 // ========== 每日简报 ==========
 
 // GenerateBriefing 生成项目简报

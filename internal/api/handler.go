@@ -77,6 +77,13 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/teams/{id}/members/{uid}", h.removeTeamMember)
 	mux.HandleFunc("POST /api/teams/{id}/share", h.shareMemory)
 	mux.HandleFunc("GET /api/teams/{id}/memories", h.listSharedMemories)
+	mux.HandleFunc("GET /api/teams/{id}/detail", h.teamDetail)
+	mux.HandleFunc("POST /api/teams/{id}/invite", h.inviteMember)
+	mux.HandleFunc("POST /api/teams/{id}/projects", h.addTeamProject)
+	mux.HandleFunc("GET /api/teams/{id}/projects", h.listTeamProjects)
+	mux.HandleFunc("POST /api/teams/{id}/search", h.searchTeamMemories)
+	mux.HandleFunc("GET /api/invites", h.listInvites)
+	mux.HandleFunc("POST /api/invites/{id}/accept", h.acceptInvite)
 
 	// Briefing
 	mux.HandleFunc("POST /api/briefing", h.generateBriefing)
@@ -589,6 +596,67 @@ func (h *Handler) listSharedMemories(w http.ResponseWriter, r *http.Request) {
 	memories, err := h.mem.ListSharedMemories(r.Context(), r.PathValue("id"), 50)
 	if err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
 	writeJSON(w, http.StatusOK, map[string]any{"memories": memories})
+}
+
+func (h *Handler) teamDetail(w http.ResponseWriter, r *http.Request) {
+	detail, err := h.mem.GetTeamDetail(r.Context(), r.PathValue("id"))
+	if err != nil { writeError(w, http.StatusNotFound, err.Error()); return }
+	writeJSON(w, http.StatusOK, detail)
+}
+
+func (h *Handler) inviteMember(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromCtx(r)
+	if user == nil { writeError(w, http.StatusUnauthorized, "未登录"); return }
+	var req struct { Username string `json:"username"` }
+	json.NewDecoder(r.Body).Decode(&req)
+	if req.Username == "" { writeError(w, http.StatusBadRequest, "username required"); return }
+	invite, err := h.mem.InviteMember(r.Context(), r.PathValue("id"), user.ID, req.Username)
+	if err != nil { writeError(w, http.StatusBadRequest, err.Error()); return }
+	writeJSON(w, http.StatusOK, invite)
+}
+
+func (h *Handler) addTeamProject(w http.ResponseWriter, r *http.Request) {
+	var req struct { Project string `json:"project"` }
+	json.NewDecoder(r.Body).Decode(&req)
+	if req.Project == "" { writeError(w, http.StatusBadRequest, "project required"); return }
+	if err := h.mem.AddTeamProject(r.Context(), r.PathValue("id"), req.Project); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error()); return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *Handler) listTeamProjects(w http.ResponseWriter, r *http.Request) {
+	projects, err := h.mem.ListTeamProjects(r.Context(), r.PathValue("id"))
+	if err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+	writeJSON(w, http.StatusOK, map[string]any{"projects": projects})
+}
+
+func (h *Handler) searchTeamMemories(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" { userID = "default" }
+	var req struct { Query string `json:"query"`; Limit int `json:"limit"` }
+	json.NewDecoder(r.Body).Decode(&req)
+	if req.Query == "" { writeError(w, http.StatusBadRequest, "query required"); return }
+	memories, err := h.mem.SearchTeamMemories(r.Context(), userID, r.PathValue("id"), req.Query, req.Limit)
+	if err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+	writeJSON(w, http.StatusOK, map[string]any{"results": memories, "count": len(memories)})
+}
+
+func (h *Handler) listInvites(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromCtx(r)
+	if user == nil { writeError(w, http.StatusUnauthorized, "未登录"); return }
+	invites, err := h.mem.ListPendingInvites(r.Context(), user.Username)
+	if err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+	writeJSON(w, http.StatusOK, map[string]any{"invites": invites})
+}
+
+func (h *Handler) acceptInvite(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromCtx(r)
+	if user == nil { writeError(w, http.StatusUnauthorized, "未登录"); return }
+	if err := h.mem.AcceptInvite(r.Context(), r.PathValue("id"), user.ID); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error()); return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 // ========== Briefing ==========
