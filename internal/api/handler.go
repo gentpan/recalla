@@ -13,6 +13,7 @@ import (
 	"github.com/gentpan/recalla/internal/compress"
 	"github.com/gentpan/recalla/internal/config"
 	ghpkg "github.com/gentpan/recalla/internal/github"
+	tgpkg "github.com/gentpan/recalla/internal/telegram"
 	"github.com/gentpan/recalla/internal/memory"
 )
 
@@ -22,12 +23,16 @@ type Handler struct {
 	compressor *compress.Compressor
 	cfg        *config.Config
 	auth       *auth.Service
+	tgBot      *tgpkg.Bot
 }
 
 // NewHandler 创建处理器
 func NewHandler(mem *memory.Service, compressor *compress.Compressor, cfg *config.Config, authSvc *auth.Service) *Handler {
 	return &Handler{mem: mem, compressor: compressor, cfg: cfg, auth: authSvc}
 }
+
+// SetTelegramBot 设置 Telegram Bot（用于 GitHub → Telegram 通知）
+func (h *Handler) SetTelegramBot(bot *tgpkg.Bot) { h.tgBot = bot }
 
 // Register 注册路由
 func (h *Handler) Register(mux *http.ServeMux) {
@@ -57,6 +62,12 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/config/push", h.configPush)
 	mux.HandleFunc("POST /api/config/pull", h.configPull)
 	mux.HandleFunc("GET /api/config/list", h.configList)
+
+	// Knowledge Graph
+	mux.HandleFunc("POST /api/kg/facts", h.addFact)
+	mux.HandleFunc("GET /api/kg/facts", h.queryFacts)
+	mux.HandleFunc("DELETE /api/kg/facts/{id}", h.invalidateFact)
+	mux.HandleFunc("POST /api/memory/check", h.checkContradiction)
 
 	// Teams
 	mux.HandleFunc("POST /api/teams", h.createTeam)
@@ -211,10 +222,14 @@ func (h *Handler) syncSession(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// 压缩会话
+// 压缩会话（压缩后自动保存为记忆）
 func (h *Handler) compressSession(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" { userID = "default" }
+
 	var req struct {
 		Content string `json:"content"`
+		Project string `json:"project,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Content == "" {
 		writeError(w, http.StatusBadRequest, "content 不能为空")
@@ -227,8 +242,23 @@ func (h *Handler) compressSession(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "压缩失败")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{
+
+	// 自动保存压缩结果为记忆
+	var memoryID string
+	if req.Project != "" {
+		mem, err := h.mem.Save(r.Context(), userID, memory.SaveRequest{
+			Project:    req.Project,
+			Type:       "session",
+			Content:    compressed,
+			Tags:       []string{"compressed", "session-summary"},
+			Importance: 0.6,
+		})
+		if err == nil { memoryID = mem.ID }
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
 		"compressed": compressed,
+		"memory_id":  memoryID,
 	})
 }
 
@@ -573,6 +603,55 @@ func (h *Handler) generateBriefing(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, briefing)
 }
 
+// ========== Knowledge Graph ==========
+
+func (h *Handler) addFact(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" { userID = "default" }
+	var fact memory.EntityFact
+	if err := json.NewDecoder(r.Body).Decode(&fact); err != nil {
+		writeError(w, http.StatusBadRequest, "bad request"); return
+	}
+	if fact.Subject == "" || fact.Predicate == "" || fact.Object == "" {
+		writeError(w, http.StatusBadRequest, "subject, predicate, object required"); return
+	}
+	result, err := h.mem.AddFact(r.Context(), userID, fact)
+	if err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (h *Handler) queryFacts(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" { userID = "default" }
+	facts, err := h.mem.QueryFacts(r.Context(), userID,
+		r.URL.Query().Get("subject"),
+		r.URL.Query().Get("predicate"),
+		r.URL.Query().Get("project"),
+		r.URL.Query().Get("expired") == "true")
+	if err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+	writeJSON(w, http.StatusOK, map[string]any{"facts": facts})
+}
+
+func (h *Handler) invalidateFact(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" { userID = "default" }
+	if err := h.mem.InvalidateFact(r.Context(), userID, r.PathValue("id")); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error()); return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *Handler) checkContradiction(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" { userID = "default" }
+	var req struct { Content string `json:"content"` }
+	json.NewDecoder(r.Body).Decode(&req)
+	if req.Content == "" { writeError(w, http.StatusBadRequest, "content required"); return }
+	similar, err := h.mem.CheckContradiction(r.Context(), userID, req.Content)
+	if err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+	writeJSON(w, http.StatusOK, map[string]any{"similar_memories": similar, "count": len(similar)})
+}
+
 // GitHub: 获取仓库列表
 func (h *Handler) githubRepos(w http.ResponseWriter, r *http.Request) {
 	if h.cfg.GitHubToken == "" {
@@ -668,6 +747,25 @@ func (h *Handler) githubWebhook(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				log.Printf("保存 PR 记忆失败: %v", err)
 			}
+		}
+	}
+
+	// Telegram 通知
+	if h.tgBot != nil {
+		var msg string
+		switch event.Type {
+		case "push":
+			msg = fmt.Sprintf("[GitHub] Push to *%s* (%s)\n", event.Repo, event.Branch)
+			for _, c := range event.Commits {
+				msg += fmt.Sprintf("  `%s` %s\n", c.SHA, c.Message)
+			}
+		case "pull_request":
+			if event.PR != nil {
+				msg = fmt.Sprintf("[GitHub] PR #%d %s: *%s*\nBy: %s", event.PR.Number, event.PR.Action, event.PR.Title, event.PR.Author)
+			}
+		}
+		if msg != "" {
+			go h.tgBot.NotifyOwner(msg)
 		}
 	}
 

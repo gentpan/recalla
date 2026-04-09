@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gentpan/recalla/internal/compress"
@@ -102,6 +103,10 @@ func (b *Bot) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	case strings.HasPrefix(text, "/compress"):
 		b.handleCompress(chatID, userID)
+
+	case strings.HasPrefix(text, "/ask "):
+		question := strings.TrimPrefix(text, "/ask ")
+		b.handleAsk(chatID, userID, question)
 
 	case text == "/briefing":
 		b.handleBriefing(chatID, userID)
@@ -250,6 +255,47 @@ func (b *Bot) handleBriefing(chatID int64, userID string) {
 	b.send(chatID, briefing.Content)
 }
 
+func (b *Bot) handleAsk(chatID int64, userID, question string) {
+	b.send(chatID, "Thinking...")
+
+	// 搜索相关记忆
+	project := b.userProject[fmt.Sprintf("%d", chatID)]
+	memories, err := b.mem.Search(context.Background(), userID, memory.SearchRequest{
+		Query: question, Project: project, Limit: 5,
+	})
+	if err != nil || len(memories) == 0 {
+		b.send(chatID, "No relevant memories found for this question.")
+		return
+	}
+
+	// 构建上下文
+	var ctx strings.Builder
+	for _, m := range memories {
+		content := m.Content
+		if len(content) > 300 { content = content[:300] }
+		ctx.WriteString(fmt.Sprintf("[%s][%s] %s\n\n", m.Type, m.CreatedAt.Format("2006-01-02"), content))
+	}
+
+	// 用 LLM 回答
+	prompt := fmt.Sprintf("Based on the following memories, answer the user's question concisely.\n\nMemories:\n%s\nQuestion: %s\n\nAnswer:", ctx.String(), question)
+	answer, err := b.compressor.Compress(context.Background(), prompt)
+	if err != nil {
+		// fallback: 直接返回记忆
+		var msg strings.Builder
+		msg.WriteString(fmt.Sprintf("Related memories for: %s\n\n", question))
+		for i, m := range memories {
+			content := m.Content
+			if len(content) > 150 { content = content[:150] + "..." }
+			msg.WriteString(fmt.Sprintf("%d. [%s] %s\n%s\n\n", i+1, m.Type, m.CreatedAt.Format("01-02"), content))
+		}
+		b.send(chatID, msg.String())
+		return
+	}
+
+	if len(answer) > 4000 { answer = answer[:4000] + "..." }
+	b.send(chatID, answer)
+}
+
 func (b *Bot) sendHelp(chatID int64) {
 	b.send(chatID, `*Recalla Bot*
 
@@ -259,9 +305,25 @@ func (b *Bot) sendHelp(chatID int64) {
 /context <project> — Restore project context
 /project <name> — Switch project
 /projects — List all projects
+/ask <question> — AI answers based on memories
 /compress — Compress recent sessions
 /briefing — Generate daily briefing
 /help — Show this help`)
+}
+
+// Notify 向指定 chat 发送通知（供外部调用）
+func (b *Bot) Notify(chatID int64, text string) {
+	b.send(chatID, text)
+}
+
+// NotifyAll 向所有已知用户发送通知（简化版：用环境变量配置的 chat ID）
+func (b *Bot) NotifyOwner(text string) {
+	// 从环境变量获取 owner chat ID
+	ownerChat := os.Getenv("RECALLA_TELEGRAM_CHAT_ID")
+	if ownerChat == "" { return }
+	var chatID int64
+	fmt.Sscanf(ownerChat, "%d", &chatID)
+	if chatID != 0 { b.send(chatID, text) }
 }
 
 // send 发送消息
