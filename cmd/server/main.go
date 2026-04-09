@@ -11,6 +11,7 @@ import (
 
 	"github.com/gentpan/recalla/internal/api"
 	authpkg "github.com/gentpan/recalla/internal/auth"
+	tgpkg "github.com/gentpan/recalla/internal/telegram"
 	"github.com/gentpan/recalla/internal/compress"
 	"github.com/gentpan/recalla/internal/config"
 	"github.com/gentpan/recalla/internal/db"
@@ -73,6 +74,13 @@ func main() {
 	// 注册 MCP 端点
 	mcpServer := mcp.NewServer(memService, compressor)
 	mux.Handle("/mcp", mcpServer)
+
+	// Telegram Bot Webhook
+	if cfg.TelegramToken != "" {
+		tgBot := tgpkg.NewBot(cfg.TelegramToken, memService, compressor)
+		mux.HandleFunc("POST /api/telegram/webhook", tgBot.HandleWebhook)
+		log.Println("Telegram Bot 已启用")
+	}
 
 	// 静态文件服务（Dashboard）
 	mux.Handle("/", http.FileServer(http.Dir("web/static")))

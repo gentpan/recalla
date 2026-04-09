@@ -54,6 +54,9 @@ type Config struct {
 	GitHubOwner         string
 	GitHubWebhookSecret string
 
+	// Telegram Bot
+	TelegramToken string
+
 	// 配置文件路径
 	configFile string
 }
@@ -76,6 +79,7 @@ func Load() *Config {
 		GitHubToken:         envOr("RECALLA_GITHUB_TOKEN", ""),
 		GitHubOwner:         envOr("RECALLA_GITHUB_OWNER", ""),
 		GitHubWebhookSecret: envOr("RECALLA_GITHUB_WEBHOOK_SECRET", ""),
+		TelegramToken:       envOr("RECALLA_TELEGRAM_TOKEN", ""),
 		configFile:          "/opt/recalla/config.json",
 	}
 

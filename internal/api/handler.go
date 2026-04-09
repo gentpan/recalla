@@ -58,6 +58,18 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/config/pull", h.configPull)
 	mux.HandleFunc("GET /api/config/list", h.configList)
 
+	// Teams
+	mux.HandleFunc("POST /api/teams", h.createTeam)
+	mux.HandleFunc("GET /api/teams", h.listTeams)
+	mux.HandleFunc("GET /api/teams/{id}/members", h.listTeamMembers)
+	mux.HandleFunc("POST /api/teams/{id}/members", h.addTeamMember)
+	mux.HandleFunc("DELETE /api/teams/{id}/members/{uid}", h.removeTeamMember)
+	mux.HandleFunc("POST /api/teams/{id}/share", h.shareMemory)
+	mux.HandleFunc("GET /api/teams/{id}/memories", h.listSharedMemories)
+
+	// Briefing
+	mux.HandleFunc("POST /api/briefing", h.generateBriefing)
+
 	// GitHub
 	mux.HandleFunc("GET /api/github/repos", h.githubRepos)
 	mux.HandleFunc("GET /api/github/repos/{owner}/{repo}/commits", h.githubCommits)
@@ -488,6 +500,79 @@ func (h *Handler) configList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"configs": configs})
 }
 
+// ========== Teams ==========
+
+func (h *Handler) createTeam(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromCtx(r)
+	if user == nil { writeError(w, http.StatusUnauthorized, "未登录"); return }
+	var req struct { Name string `json:"name"` }
+	json.NewDecoder(r.Body).Decode(&req)
+	if req.Name == "" { writeError(w, http.StatusBadRequest, "name required"); return }
+	team, err := h.mem.CreateTeam(r.Context(), req.Name, user.ID)
+	if err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+	writeJSON(w, http.StatusOK, team)
+}
+
+func (h *Handler) listTeams(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromCtx(r)
+	if user == nil { writeError(w, http.StatusUnauthorized, "未登录"); return }
+	teams, err := h.mem.ListTeams(r.Context(), user.ID)
+	if err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+	writeJSON(w, http.StatusOK, map[string]any{"teams": teams})
+}
+
+func (h *Handler) listTeamMembers(w http.ResponseWriter, r *http.Request) {
+	members, err := h.mem.ListTeamMembers(r.Context(), r.PathValue("id"))
+	if err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+	writeJSON(w, http.StatusOK, map[string]any{"members": members})
+}
+
+func (h *Handler) addTeamMember(w http.ResponseWriter, r *http.Request) {
+	var req struct { UserID string `json:"user_id"`; Role string `json:"role"` }
+	json.NewDecoder(r.Body).Decode(&req)
+	if req.Role == "" { req.Role = "member" }
+	if err := h.mem.AddTeamMember(r.Context(), r.PathValue("id"), req.UserID, req.Role); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error()); return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *Handler) removeTeamMember(w http.ResponseWriter, r *http.Request) {
+	if err := h.mem.RemoveTeamMember(r.Context(), r.PathValue("id"), r.PathValue("uid")); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error()); return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *Handler) shareMemory(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromCtx(r)
+	if user == nil { writeError(w, http.StatusUnauthorized, "未登录"); return }
+	var req struct { MemoryID string `json:"memory_id"` }
+	json.NewDecoder(r.Body).Decode(&req)
+	if err := h.mem.ShareMemory(r.Context(), r.PathValue("id"), req.MemoryID, user.ID); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error()); return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *Handler) listSharedMemories(w http.ResponseWriter, r *http.Request) {
+	memories, err := h.mem.ListSharedMemories(r.Context(), r.PathValue("id"), 50)
+	if err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+	writeJSON(w, http.StatusOK, map[string]any{"memories": memories})
+}
+
+// ========== Briefing ==========
+
+func (h *Handler) generateBriefing(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" { userID = "default" }
+	var req struct { Project string `json:"project"` }
+	json.NewDecoder(r.Body).Decode(&req)
+	briefing, err := h.mem.GenerateBriefing(r.Context(), userID, req.Project)
+	if err != nil { writeError(w, http.StatusInternalServerError, err.Error()); return }
+	writeJSON(w, http.StatusOK, briefing)
+}
+
 // GitHub: 获取仓库列表
 func (h *Handler) githubRepos(w http.ResponseWriter, r *http.Request) {
 	if h.cfg.GitHubToken == "" {
@@ -712,7 +797,7 @@ func getUserFromCtx(r *http.Request) *auth.User {
 func AuthMiddleware(authSvc *auth.Service, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 不需要认证的路径
-		if r.URL.Path == "/api/health" || r.URL.Path == "/api/auth/login" || r.URL.Path == "/api/github/webhook" {
+		if r.URL.Path == "/api/health" || r.URL.Path == "/api/auth/login" || r.URL.Path == "/api/github/webhook" || r.URL.Path == "/api/telegram/webhook" {
 			next.ServeHTTP(w, r)
 			return
 		}
