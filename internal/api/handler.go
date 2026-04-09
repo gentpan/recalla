@@ -53,6 +53,11 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/settings", h.saveSettings)
 	mux.HandleFunc("POST /api/sessions/import", h.importSessions)
 
+	// Config Sync
+	mux.HandleFunc("POST /api/config/push", h.configPush)
+	mux.HandleFunc("POST /api/config/pull", h.configPull)
+	mux.HandleFunc("GET /api/config/list", h.configList)
+
 	// GitHub
 	mux.HandleFunc("GET /api/github/repos", h.githubRepos)
 	mux.HandleFunc("GET /api/github/repos/{owner}/{repo}/commits", h.githubCommits)
@@ -430,6 +435,57 @@ func (h *Handler) importSessions(w http.ResponseWriter, r *http.Request) {
 		imported++
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"imported": imported, "total": len(req.Sessions)})
+}
+
+// Config: 推送配置到服务器
+func (h *Handler) configPush(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" { userID = "default" }
+	var req struct {
+		FileKey string `json:"file_key"`
+		Content string `json:"content"`
+		Device  string `json:"device"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.FileKey == "" || req.Content == "" {
+		writeError(w, http.StatusBadRequest, "file_key and content required")
+		return
+	}
+	if err := h.mem.ConfigPush(r.Context(), userID, req.FileKey, req.Content, req.Device); err != nil {
+		writeError(w, http.StatusInternalServerError, "push failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// Config: 从服务器拉取配置
+func (h *Handler) configPull(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" { userID = "default" }
+	var req struct {
+		FileKey string `json:"file_key"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.FileKey == "" {
+		writeError(w, http.StatusBadRequest, "file_key required")
+		return
+	}
+	cfg, err := h.mem.ConfigPull(r.Context(), userID, req.FileKey)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, cfg)
+}
+
+// Config: 列出所有配置
+func (h *Handler) configList(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" { userID = "default" }
+	configs, err := h.mem.ConfigList(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "query failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"configs": configs})
 }
 
 // GitHub: 获取仓库列表
